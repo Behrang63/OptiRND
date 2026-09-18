@@ -1,5 +1,97 @@
 {
   "hooks": {
-    "events": {}
+    "events": {
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "type": "process",
+              "command": "fuser -k 8001/tcp || true; find . -type d -name \"__pycache__\" -exec rm -rf {} +",
+              "enabled": true,
+              "timeoutMs": 60000
+            }
+          ]
+        }
+      ],
+      "PreToolUse": [
+        {
+          "hooks": [
+            {
+              "type": "process",
+              "command": "python3 -c \"import sys, os; payload=os.environ.get('TOOL_INPUT', ''); sys.exit(1) if any(x in payload for x in ['grep -r', 'find .', 'tree', 'ls -R']) else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            },
+            {
+              "type": "process",
+              "command": "python3 -c \"import sys, os; p=os.environ.get('TOOL_INPUT',''); sys.exit(1) if any(x in p for x in ['poetry', 'conda', 'pipenv', 'gunicorn', 'hypercorn']) else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            }
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "hooks": [
+            {
+              "type": "process",
+              "command": "python3 -c \"import sys, os; out=os.environ.get('TOOL_OUTPUT',''); (print('Log truncated to prevent context flood:\\n' + '\\n'.join(out.splitlines()[-30:])) or sys.exit(0)) if len(out.splitlines()) > 50 else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            }
+          ]
+        }
+      ],
+      "PostToolUseFailure": [
+        {
+          "hooks": [
+            {
+              "type": "process",
+              "command": "python3 -c \"import os, sys; count = int(os.environ.get('FAIL_COUNT', '0')) + 1; os.environ['FAIL_COUNT'] = str(count); (print('Circuit Breaker Tripped: 3 tool failures reached.') or sys.exit(1)) if count >= 3 else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            }
+          ]
+        }
+      ],
+      "Stop": [
+        {
+          "hooks": [
+            {
+              "type": "process",
+              "command": "python -m compileall -q . && (fuser -k 8001/tcp || true) && find . -type d -name \"__pycache__\" -exec rm -rf {} +",
+              "enabled": true,
+              "timeoutMs": 60000
+            },
+            {
+              "type": "process",
+              "command": "python3 -c \"import subprocess, sys; res=subprocess.check_output(['git', 'status', '--porcelain']).decode().splitlines(); sys.exit(1) if len(res) > 3 else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            },
+            {
+              "type": "process",
+              "command": "python3 -c \"import subprocess, sys; diff=subprocess.check_output(['git', 'diff']).decode(); sys.exit(1) if any(k in diff for k in ['API_KEY =', 'SECRET =', 'execute(f\\\"', 'cursor.execute(f\\'']) else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            },
+            {
+              "type": "process",
+              "command": "python3 -c \"import subprocess, sys; res=subprocess.check_output(['git','diff','--name-only']).decode().splitlines(); sys.exit(1) if any(x in f for f in res for x in ['schemas.py', 'contracts.py']) else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            },
+            {
+              "type": "process",
+              "command": "python3 -c \"import subprocess, sys; d=subprocess.check_output(['git','diff','--','ui/']).decode(); sys.exit(1) if any(x in d for x in ['import core', 'from core']) else sys.exit(0)\"",
+              "enabled": true,
+              "timeoutMs": 60000
+            }
+          ]
+        }
+      ]
+    },
+    "enabled": true
   }
 }
