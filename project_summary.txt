@@ -1,0 +1,2711 @@
+=== ساختار درختی پروژه ===
+./
+    .gitattributes
+    .gitignore
+    app.py
+    ARCHITECTURE.py
+    main.py
+    pajoheshyar.db
+    project_summary.txt
+    RADME.md
+    README.md
+    requirements.txt
+    ROADMAP.md
+    run.ps1
+    SKILL.md
+    .pytest_cache/
+        .gitignore
+        CACHEDIR.TAG
+        README.md
+        v/
+            cache/
+                nodeids
+    agents/
+        __init__.py
+        main_agents/
+            ex_ante_agent.py
+            ex_post_agent.py
+            process_agent.py
+            __init__.py
+        sub_agents/
+            data_synth_agent.py
+            doc_parser_agent.py
+            __init__.py
+    config/
+        settings.yaml
+    core/
+        carbon_tax_engine.py
+        database.py
+        energy_simulation.py
+        llm_provider.py
+        monte_carlo.py
+        parser.py
+        rag_engine.py
+        reliability_engine.py
+        reporter.py
+        supply_chain_engine.py
+        __init__.py
+    data/
+        pajooheshyar_print-1786101277.pdf
+    OptiRND/
+        .gitattributes
+        .gitignore
+        README.md
+    scripts/
+        test_pipeline.py
+        __init__.py
+    tests/
+        test_agents.py
+        test_carbon_tax.py
+        test_database.py
+        test_energy_simulation.py
+        test_integration.py
+        test_llm_provider.py
+        test_monte_carlo.py
+        test_parser.py
+        test_rag.py
+        test_reliability_engine.py
+        test_supply_chain.py
+        __init__.py
+    ui/
+        state_manager.py
+        __init__.py
+        components/
+        views/
+            carbon_tax_view.py
+            energy_risk_view.py
+            ex_ante_view.py
+            ex_post_view.py
+            history_view.py
+            process_view.py
+            reliability_view.py
+            supply_chain_view.py
+
+========================================
+=== محتوای فایل‌های پروژه ===
+
+--- FILE: .\app.py ---
+import streamlit as st
+from core.database import init_db
+from core.llm_provider import LLMFactory
+from ui.state_manager import StateManager
+
+# وارد کردن توابع رندر نماهای سامانه
+from ui.views.ex_ante_view import render_ex_ante_view
+from ui.views.energy_risk_view import render_energy_risk_view
+from ui.views.reliability_view import render_reliability_view
+from ui.views.supply_chain_view import render_supply_chain_view
+from ui.views.carbon_tax_view import render_carbon_tax_view  # نمای جدید مالیات کربن
+from ui.views.process_view import render_process_view
+from ui.views.ex_post_view import render_ex_post_view
+from ui.views.history_view import render_history_view
+
+
+@st.cache_resource
+def get_db_factory():
+    return init_db()
+
+
+def apply_custom_css():
+    st.markdown("""
+        <style>
+            html, body, [class*="css"], div, p, span, h1, h2, h3, h4, h5, h6 {
+                direction: rtl !important;
+                text-align: right !important;
+            }
+            section[data-testid="stSidebar"] {
+                direction: rtl !important;
+                text-align: right !important;
+            }
+            .stTextInput > label, .stNumberInput > label, .stSlider > label, 
+            .stFileUploader > label, .stSelectbox > label {
+                text-align: right !important;
+                display: block !important;
+                width: 100% !important;
+            }
+            [data-testid="stMetric"] {
+                text-align: right !important;
+                direction: rtl !important;
+            }
+            [data-testid="stMetricLabel"] {
+                justify-content: flex-end !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+
+def main():
+    st.set_page_config(
+        page_title="سامانه پژوهشیار",
+        page_icon="🔬",
+        layout="wide"
+    )
+
+    apply_custom_css()
+    StateManager.initialize_state()
+    db_session_factory = get_db_factory()
+    llm_provider = LLMFactory.get_provider("mock")
+
+    st.title("🔬 سامانه هوشمند ارزیابی و مدیریت ریسک پژوهشیار")
+    st.subheader("پلتفرم جامع ارزیابی اقتصادی، تورمی، ارزی و ریسک‌های عملیاتی R&D")
+
+    st.sidebar.header("منوی اصلی")
+    pages = [
+        "ارزیابی پیشینی (Ex-Ante)", 
+        "ریسک ناترازی انرژی (Energy Risk)",
+        "قابلیت اطمینان و توقف خط (Reliability & Downtime)",
+        "ریسک زنجیره تأمین و تحویل (Supply Chain Risk)",
+        "مالیات کربن و فولاد سبز (Carbon Tax & Green Steel)",
+        "پایش فرآیندی (Process)", 
+        "ارزیابی پسینی (Ex-Post)",
+        "تاریخچه ارزیابی‌ها (History)"
+    ]
+    
+    selected_page = st.sidebar.radio("بخش مورد نظر را انتخاب کنید:", pages)
+
+    if selected_page == "ارزیابی پیشینی (Ex-Ante)":
+        render_ex_ante_view(llm_provider, db_session_factory)
+
+    elif selected_page == "ریسک ناترازی انرژی (Energy Risk)":
+        render_energy_risk_view()
+
+    elif selected_page == "قابلیت اطمینان و توقف خط (Reliability & Downtime)":
+        render_reliability_view()
+
+    elif selected_page == "ریسک زنجیره تأمین و تحویل (Supply Chain Risk)":
+        render_supply_chain_view()
+
+    elif selected_page == "مالیات کربن و فولاد سبز (Carbon Tax & Green Steel)":
+        render_carbon_tax_view()
+
+    elif selected_page == "پایش فرآیندی (Process)":
+        render_process_view(llm_provider)
+
+    elif selected_page == "ارزیابی پسینی (Ex-Post)":
+        render_ex_post_view(llm_provider)
+
+    elif selected_page == "تاریخچه ارزیابی‌ها (History)":
+        render_history_view(db_session_factory)
+
+
+if __name__ == "__main__":
+    main()
+
+--- FILE: .\ARCHITECTURE.py ---
+سند معماری و الگوی پیاده‌سازی کدهای پروژه پژوهشیار (ARCHITECTURE.md)
+این سند، معماری دقیق نرم‌افزار، الگوی جریان داده (Data Flow)، تعاریف اینترفیس‌ها و کدهای پایه (Skeletons) مخزن پژوهشیار را برای پیاده‌سازی دستی یا تولید کد با هوش مصنوعی مشخص می‌کند.
+۱. الگوی لایه‌بندی نرم‌افزار (Layered Pattern)
+┌────────────────────────────────────────────────────────┐
+│               Streamlit UI Layer (ui/)                 │
+│   • Views (ex_ante_view, process_view, ex_post_view)   │
+│   • Data Editor Components (st.data_editor)            │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│             Domain Agents Layer (agents/)              │
+│   • Main: ExAnteAgent, ProcessAgent, ExPostAgent       │
+│   • Sub: DataSynthAgent, DocParserAgent                │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│              Core Business Engines (core/)             │
+│   • MonteCarloEngine (PERT, QMC, VaR)                  │
+│   • RAGEngine & DocParser                              │
+│   • LLMProvider (Base, Mock, Real)                     │
+│   • Database (SQLAlchemy ORM + SQLite)                 │
+└────────────────────────────────────────────────────────┘
+
+۲. پیاده‌سازی کد‌های پایه (Core Skeletons)
+۲.۱. ماژول LLM Provider مقاوم (core/llm_provider.py)
+این ماژول عدم کرش برنامه در غیاب هوش مصنوعی خارجی را تضمین می‌کند.
+from abc import ABC, abstractmethod
+from typing import Dict, Any, Optional
+import json
+
+class BaseLLMProvider(ABC):
+    @abstractmethod
+    def generate_json(self, prompt: str, schema_description: str) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def generate_text(self, prompt: str) -> str:
+        pass
+
+
+class MockLLMProvider(BaseLLMProvider):
+    """Fallback LLM provider using deterministic rules and mock responses."""
+    
+    def generate_json(self, prompt: str, schema_description: str) -> Dict[str, Any]:
+        # Return fallback structured data depending on prompt keywords
+        if "ex_ante" in prompt.lower():
+            return {
+                "technical_success_probability": 0.75,
+                "recommended_action": "APPROVE_WITH_CONDITIONS",
+                "risk_summary": "High technical complexity in algorithm training, manageable financial risk."
+            }
+        elif "process" in prompt.lower():
+            return {
+                "variance_status": "WARNING",
+                "revised_completion_probability": 0.82,
+                "mitigation_advice": "Reallocate compute resources to prevent timeline slippage."
+            }
+        return {"status": "mock_success", "message": "Rule-based mock response executed."}
+
+    def generate_text(self, prompt: str) -> str:
+        return "[MOCK RESPONSE]: System operating in offline/mock mode. Analysis completed successfully."
+
+
+class LLMFactory:
+    @staticmethod
+    def get_provider(provider_type: str = "mock", api_key: Optional[str] = None) -> BaseLLMProvider:
+        if provider_type == "mock" or not api_key:
+            return MockLLMProvider()
+        # Future: Return RealLLMProvider or OllamaLLMProvider
+        return MockLLMProvider()
+
+۲.۲. موتور شبیه‌سازی مونت‌کارلو و VaR (core/monte_carlo.py)
+import numpy as np
+from scipy.stats import pert
+from typing import Dict, Any, Tuple
+
+class MonteCarloEngine:
+    def __init__(self, num_simulations: int = 10000, seed: int = 42):
+        self.num_simulations = num_simulations
+        np.random.seed(seed)
+
+    def generate_pert_samples(self, low: float, mode: float, high: float) -> np.ndarray:
+        """Generates random samples following a PERT distribution."""
+        if low >= high or not (low <= mode <= high):
+            # Fallback to uniform if invalid parameters
+            return np.random.uniform(low, high, self.num_simulations)
+        
+        gamma_shape = 4.0
+        alpha = 1 + gamma_shape * (mode - low) / (high - low)
+        beta_val = 1 + gamma_shape * (high - mode) / (high - low)
+        
+        beta_samples = np.random.beta(alpha, beta_val, self.num_simulations)
+        return low + beta_samples * (high - low)
+
+    def run_roi_simulation(
+        self,
+        cost_p10_p50_p90: Tuple[float, float, float],
+        benefit_p10_p50_p90: Tuple[float, float, float],
+        p_success: float,
+        discount_rate: float = 0.15,
+        years: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Executes Monte Carlo simulation for ROI and VaR calculation.
+        """
+        cost_samples = self.generate_pert_samples(*cost_p10_p50_p90)
+        annual_benefit_samples = self.generate_pert_samples(*benefit_p10_p50_p90)
+        
+        # Success/Failure technical trial
+        success_mask = np.random.binomial(1, p_success, self.num_simulations)
+        
+        # Calculate NPV for each simulation
+        discount_factors = sum([1 / ((1 + discount_rate) ** t) for t in range(1, years + 1)])
+        npv_samples = (annual_benefit_samples * discount_factors * success_mask) - cost_samples
+        
+        roi_samples = (npv_samples / np.maximum(cost_samples, 1.0)) * 100
+
+        # Risk Metrics
+        mean_roi = float(np.mean(roi_samples))
+        std_roi = float(np.std(roi_samples))
+        
+        # Value at Risk (VaR) at 95% Confidence
+        var_95 = float(np.percentile(roi_samples, 5))  # 5th percentile
+        var_99 = float(np.percentile(roi_samples, 1))  # 1st percentile
+
+        return {
+            "mean_roi": round(mean_roi, 2),
+            "std_dev": round(std_roi, 2),
+            "var_95": round(var_95, 2),
+            "var_99": round(var_99, 2),
+            "expected_npv": round(float(np.mean(npv_samples)), 2),
+            "probability_of_loss": round(float(np.mean(roi_samples < 0) * 100), 2),
+            "raw_roi_samples": roi_samples
+        }
+
+۲.۳. پایگاه داده SQLAlchemy (core/database.py)
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime, Text
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+import datetime
+
+Base = declarative_base()
+
+class Proposal(Base):
+    __tablename__ = 'proposals'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(255), nullable=False)
+    organization = Column(String(255), default="فولاد مبارکه")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    # Financial & Technical Triplet Inputs
+    cost_p10 = Column(Float, nullable=False)
+    cost_p50 = Column(Float, nullable=False)
+    cost_p90 = Column(Float, nullable=False)
+
+    benefit_p10 = Column(Float, nullable=False)
+    benefit_p50 = Column(Float, nullable=False)
+    benefit_p90 = Column(Float, nullable=False)
+
+    p_success = Column(Float, default=0.8)
+
+    # Relationships
+    milestones = relationship("Milestone", back_populates="proposal")
+
+
+class Milestone(Base):
+    __tablename__ = 'milestones'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    proposal_id = Column(Integer, ForeignKey('proposals.id'))
+    title = Column(String(255), nullable=False)
+    planned_budget = Column(Float, nullable=False)
+    actual_budget = Column(Float, default=0.0)
+    planned_duration_days = Column(Integer, nullable=False)
+    actual_duration_days = Column(Integer, default=0)
+    completion_percentage = Column(Float, default=0.0)
+
+    proposal = relationship("Proposal", back_populates="milestones")
+
+
+def init_db(db_path: str = "sqlite:///data/pajoheshyar.db"):
+    engine = create_engine(db_path, echo=False)
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine)
+
+۲.۴. عامل ارزیابی پیشینی (agents/main_agents/ex_ante_agent.py)
+from typing import Dict, Any
+from core.monte_carlo import MonteCarloEngine
+from core.llm_provider import BaseLLMProvider
+
+class ExAnteAgent:
+    def __init__(self, llm_provider: BaseLLMProvider):
+        self.llm_provider = llm_provider
+        self.mc_engine = MonteCarloEngine(num_simulations=10000)
+
+    def evaluate_proposal(self, proposal_data: Dict[str, Any]) -> Dict[str, Any]:
+        # 1. Run Monte Carlo Simulation
+        cost_triplet = (proposal_data['cost_p10'], proposal_data['cost_p50'], proposal_data['cost_p90'])
+        benefit_triplet = (proposal_data['benefit_p10'], proposal_data['benefit_p50'], proposal_data['benefit_p90'])
+        
+        mc_results = self.mc_engine.run_roi_simulation(
+            cost_p10_p50_p90=cost_triplet,
+            benefit_p10_p50_p90=benefit_triplet,
+            p_success=proposal_data.get('p_success', 0.8)
+        )
+
+        # 2. Get LLM / Mock Qualitative Assessment
+        prompt = f"Evaluate proposal {proposal_data.get('title')} with VaR 95% = {mc_results['var_95']}%"
+        llm_assessment = self.llm_provider.generate_json(prompt, schema_description="Ex-ante evaluation schema")
+
+        # 3. Combine Quantitative and Qualitative Results
+        return {
+            "proposal_title": proposal_data.get('title'),
+            "quantitative_metrics": mc_results,
+            "qualitative_assessment": llm_assessment,
+            "confidence_level_status": "HIGH" if mc_results['var_95'] > 10 else "MODERATE_RISK"
+        }
+
+۳. نحوه تست محلی در VS Code
+تست کل جریان کاری بدون اجرای Streamlit:
+# scripts/test_pipeline.py
+from core.database import init_db, Proposal
+from core.llm_provider import LLMFactory
+from agents.main_agents.ex_ante_agent import ExAnteAgent
+
+def run_test():
+    print("--- Testing Pajoheshyar Pipeline ---")
+    
+    # 1. Init Database
+    Session = init_db("sqlite:///:memory:")
+    
+    # 2. Create Dummy Proposal
+    sample_proposal = {
+        "title": "سامانه تشخیص عیوب ورق فولاد مبارکه",
+        "cost_p10": 8000.0, "cost_p50": 10000.0, "cost_p90": 14000.0,  # میلیون تومان
+        "benefit_p10": 3000.0, "benefit_p50": 5000.0, "benefit_p90": 8000.0,
+        "p_success": 0.85
+    }
+
+    # 3. Instantiate Agent with Mock LLM
+    llm = LLMFactory.get_provider("mock")
+    agent = ExAnteAgent(llm_provider=llm)
+
+    # 4. Evaluate
+    result = agent.evaluate_proposal(sample_proposal)
+    
+    print("Mean ROI:", result['quantitative_metrics']['mean_roi'], "%")
+    print("VaR 95%:", result['quantitative_metrics']['var_95'], "%")
+    print("Probability of Loss:", result['quantitative_metrics']['probability_of_loss'], "%")
+    print("Status:", result['confidence_level_status'])
+    print("--- Test Passed Successfully ---")
+
+if __name__ == "__main__":
+    run_test()
+
+
+
+
+--- FILE: .\main.py ---
+import os
+import subprocess
+from pathlib import Path
+from core.database import init_db
+
+def setup_environment():
+    """
+    آماده‌سازی پیش‌نیازهای برنامه، ساخت پوشه‌های داده و راه‌اندازی اولیه دیتابیس.
+    """
+    # ساخت پوشه data برای ذخیره فایل‌ها و دیتابیس در صورت عدم وجود
+    data_dir = Path("data")
+    data_dir.mkdir(exist_ok=True)
+    
+    # راه‌اندازی اولیه دیتابیس
+    init_db()
+    print("✅ [محیط اجرا و پایگاه داده با موفقیت آماده‌سازی شد]")
+
+def run_app():
+    """
+    اجرای وب‌اپلیکیشن Streamlit.
+    """
+    setup_environment()
+    print("🚀 در حال راه‌اندازی رابط کاربری سامانه پژوهشیار...")
+    subprocess.run(["streamlit", "run", "app.py"])
+
+if __name__ == "__main__":
+    run_app()
+
+--- FILE: .\RADME.md ---
+سامانه هوشمند ارزیابی و مدیریت ریسک پروژه‌های پژوهشی (پژوهشیار)
+Pajoheshyar: AI-Driven R&D Risk Evaluation & Portfolio Management Platform
+پژوهشیار یک پلتفرم نرم‌افزاری پیشرفته و هوشمند برای مدیریت ریسک، ارزیابی اقتصادی و پایش فرآیندی پروژه‌های تحقیق و توسعه (R&D) در صنایع بزرگ و سنگین (مانند فولاد، نفت و پتروشیمی) است. این سامانه با تلفیق مدل‌های ریاضی پیشرفته مانند شبیه‌سازی مونت‌کارلو (Monte Carlo)، ارزش در معرض ریسک (VaR)، نقشه‌برداری کارایی-عدم‌قطعیت (Efficiency-Uncertainty Mapping) و عامل‌های هوشمند (AI Agents)، زبان مشترک و قابل‌دفاعی میان مدیران R&D و هیئت‌مدیره ایجاد می‌کند.
+🌟 ویژگی‌های کلیدی پلتفرم
+عامل ارزیابی پیشینی (Ex-ante Evaluation Agent):
+تحلیل عدم‌قطعیت‌های فنی، زمانی و مالی با شبیه‌سازی ۱۰,۰۰۰ سناریو.
+محاسبه نرخ بازگشت سرمایه تعدیل‌شده با ریسک (Risk-Adjusted ROI) و شاخص VaR.
+ماتریس‌بندی ۱۰ معیار کلیدی استراتژیک (ارزش‌ها و ریسک‌ها).
+عامل پایش فرآیندی (Process-Monitoring Agent):
+ردیابی خودکار انحرافات زمانی و بودجه‌ای در مایلستون‌های پروژه.
+جانمایی پویای پروژه در یکی از ۴ ناحیه استراتژیک (Exploitation, Challenge, Desperation, Discretion).
+صدور هشدارهای زودهنگام ریسک (Early Warning System).
+عامل ارزیابی پسینی (Ex-post Value Agent):
+اتصال به KPIهای خط تولید (کاهش ضایعات، کاهش توقف خط، بومی‌سازی).
+تفکیک اثر واقعی R&D از متغیرهای مداخله‌گر محیطی با تحلیل رگرسیون تصادفی.
+صدور گواهی ارزش‌آفرینی مالی قابل‌دفاع در شورای عالی سرمایه‌گذاری.
+موتور RAG محلی و استخراج پیشرفته اسناد:
+استخراج متون، جداول ساختاریافته و زیرنویس اشکال از پروپوزال‌های PDF/Word.
+جستجوی هیبریدی محلی بدون وابستگی الزام‌آور به اینترنت یا سرویس‌های ابری.
+معماری مقاوم و بدون کرش (Mock-First Fallback):
+قابلیت اجرای ۱۰۰٪ کامل بخش‌های محاسباتی و UI حتی در صورت عدم اتصال به هوش مصنوعی (مبتنی بر Rule-based Fallbacks).
+🛠️ پیش‌نیازها و راه‌اندازی در محیط مجازی (Virtual Environment)
+۱. پیش‌نیازها
+Python 3.10 یا بالاتر
+Git
+VS Code (پیشنهادی)
+۲. ساخت و فعال‌سازی محیط مجازی
+# کلون کردن مخزن
+git clone https://github.com/your-username/pajoheshyar-ai-agents.git
+cd pajoheshyar-ai-agents
+
+# ساخت محیط مجازی
+python -m venv venv
+
+# فعال‌سازی محیط مجازی (در ویندوز)
+venv\Scripts\activate
+
+# فعال‌سازی محیط مجازی (در لینوکس/مک)
+source venv/bin/activate
+
+۳. نصب وابستگی‌ها
+pip install --upgrade pip
+pip install -r requirements.txt
+
+🚀 نحوه اجرا و تست پروژه
+اجرای اپلیکیشن وب (Streamlit)
+streamlit run app.py
+
+پس از اجرا، مرورگر خود را در آدرس http://localhost:8501 باز کنید.
+اجرای تست‌ها درون VS Code / Terminal
+جهت اطمینان از صحت محاسبات آماری و پایگاه داده بدون نیاز به وب:
+pytest
+
+اجرای اسکریپت تست کامل جریان داده (End-to-End Pipeline)
+python scripts/test_pipeline.py
+
+📂 ساختار مخزن (Repository Structure)
+pajoheshyar-core/
+├── config/             # تنظیمات YAML و آستانه‌های محاسباتی
+├── core/               # موتور محاسباتی (مونت‌کارلو، دیتابیس، RAG و پارسر)
+├── agents/             # عامل‌های هوشمند اصلی و فرعی (Sub-agents)
+├── ui/                 # فرم‌ها، جداول st.data_editor و صفحات Streamlit
+├── data/               # دیتابیس محلی SQLite و نمونه اسناد
+├── tests/              # تست‌های واحد و یکپارچه‌سازی با pytest
+├── scripts/            # اسکریپت‌های تست CLI در VS Code
+├── SKILL.md            # دستورالعمل‌های توسعه با AI
+├── ROADMAP.md          # نقشه راه توسعه
+└── app.py              # نقطه ورود اصلی اپلیکیشن Streamlit
+
+📜 لایسنس
+این پروژه تحت لایسنس MIT منتشر شده است.
+
+
+
+--- FILE: .\README.md ---
+# OptiRND
+
+
+
+--- FILE: .\requirements.txt ---
+# UI Framework
+streamlit>=1.30.0
+
+# Numerical & Statistical Engine
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+
+# Database & ORM
+SQLAlchemy>=2.0.0
+
+# Configuration & Utilities
+PyYAML>=6.0
+pydantic>=2.0.0
+
+# Testing
+pytest>=7.4.0
+
+--- FILE: .\ROADMAP.md ---
+نقشه راه توسعه پروژه پژوهشیار (ROADMAP.md)
+این سند مراحل گام‌به‌گام توسعه پلتفرم پژوهشیار را از مرحله ساخت شاسی پایه (MVP) تا اتصال به مدل‌های هوش مصنوعی محلی و استقرار سازمانی تبیین می‌کند.
+🎯 فاز ۱: ساخت شاسی فنی، موتور محاسباتی و داده‌های مصنوعی (MVP) - [وضعیت: در حال انجام]
+[x] طراحی معماری ماژولار: تفکیک لایه‌های Core، Agents، UI و Database.
+[x] موتور ریاضی مونت‌کارلو & VaR (core/monte_carlo.py):
+پیاده‌سازی توزیع‌های احتمالی PERT و Triangular.
+محاسبه شاخص VaR در سطوح اطمینان ۹۵٪ و ۹۹٪.
+شبیه‌سازی تصادفی QMC برای افزایش سرعت همگرایی.
+[x] پایگاه داده محلی SQLite (core/database.py):
+ساخت اسکیمای SQLAlchemy برای پروپوزال‌ها، مایلستون‌ها و ارزیابی‌ها.
+[x] لایه‌های Mock AI (core/llm_provider.py):
+پیاده‌سازی MockLLMProvider برای عملکرد بدون کرش در غیاب API خارجی.
+[x] تولیدکننده داده مصنوعی (agents/sub_agents/data_synth_agent.py):
+تولید پروپوزال‌های فرضی بر اساس ۳ سناریوی صنعتی (های‌تک، بومی‌سازی، بهبود فرآیند).
+[x] رابط کاربری Streamlit (ui/ & app.py):
+پیاده‌سازی فرم‌های st.data_editor جهت ورود دستی داده‌ها.
+نمایش نمودار توزیع احتمال ROI و نقشه کارایی-عدم‌قطعیت.
+📄 فاز ۲: توسعه موتور RAG محلی و پارسر پیشرفته اسناد (Doc Engine)
+[ ] استخراج ساختاریافته اسناد (core/parser.py):
+استخراج کامل متن از فایل‌های PDF و Word.
+جداسازی و تبدیل جداول به Pandas DataFrame.
+استخراج زیرنویس شکل‌ها و نمودارها.
+[ ] عامل ساختاردهی سند (agents/sub_agents/doc_parser_agent.py):
+تبدیل خروجی‌های غیرساختاریافته به Markdown Plain Text.
+[ ] موتور جستجوی ترکیبی RAG (core/rag_engine.py):
+پیاده‌سازی نمایه‌سازی BM25 / TF-IDF برای جستجوی متنی آفلاین.
+اتصال به FAISS/ChromaDB محلی جهت جستجوی برداری semantic.
+🤖 فاز ۳: یکپارچه‌سازی هوش مصنوعی و مدل‌های محلی (Local AI Integration)
+[ ] اتصال به مدل‌های زبانی محلی (Ollama / Local LLM):
+پیاده‌سازی OllamaLLMProvider برای اجرای مدل‌هایی مانند Llama-3 یا Qwen2 به صورت آفلاین.
+[ ] ارتقای عامل‌های هوشمند:
+Ex-ante Agent: استخراج خودکار مقادیر P10, P50, P90 از متون پروپوزال با استفاده از LLM.
+Process Agent: تحلیل متنی علت انحراف مایلستون‌ها و پیشنهاد اقدامات اصلاحی.
+Ex-post Agent: تولید هوشمند گواهی ارزشیابی مالی به همراه خلاصه‌های مدیریتی.
+🚀 فاز ۴: آماده‌سازی برای ارزیابی میدانی و پرزنت سازمانی (Demo & Presentation)
+[ ] طراحی سناریوهای کیس‌استدی واقعی:
+آماده‌سازی داده‌های واقعی صنایع (مانند فراخوان تشخیص عیوب ورق فولاد مبارکه).
+[ ] داشبوردهای مدیریتی و خروجی گزارش‌ها:
+امکان خروجی گرفتن از کارنامه ارزیابی پروژه به صورت PDF / Excel.
+اضافه کردن اسلایدرهای کنترلی زنده (Sensitivity Sliders) برای نمایش تغییرات VaR در جلسه پرزنت.
+🏢 فاز ۵: استقرار سازمانی و توسعه صنعتی (Enterprise Rollout)
+[ ] اتصال به سیستم‌های ERP / BPMS:
+طراحی REST API برای دریافت خودکار داده‌های مالی و زمان‌بندی از سامانه‌های سازمانی.
+[ ] امنیت و کنترل دسترسی (RBAC):
+سطح‌بندی دسترسی برای کارشناسان R&D، مدیران مالی و اعضای هیئت‌مدیره.
+
+
+
+--- FILE: .\SKILL.md ---
+AI Agent Development Guidelines & Code Generation Rules (SKILL.md)
+This document establishes the strict rules, architectural standards, and environment constraints for any AI coding assistant or developer contributing code to the Pajoheshyar (پژوهشیار) repository.
+1. Environment & Runtime Rules
+Virtual Environment Constraint:
+All code MUST execute within a dedicated Python virtual environment (venv).
+Never assume global package availability.
+Dependencies must strictly adhere to requirements.txt.
+Framework & UI Standard:
+The user interface is built strictly using Streamlit.
+UI logic must be separated into views (ui/views/) and components (ui/components/). Never put database or simulation logic directly inside Streamlit render functions.
+No-Crash Fallback Guarantee (Zero-External-AI Dependence):
+The application MUST NEVER CRASH if an LLM API or local LLM server (e.g., Ollama) is unavailable.
+Every agent interaction must route through core/llm_provider.py.
+When LLM is disabled or fails, MockLLMProvider MUST return deterministic, rule-based structured JSON/Text responses.
+2. Code Architecture & Design Principles
+Directory Blueprint
+pajoheshyar-core/
+├── config/             # YAML configurations
+├── core/               # Pure Python business logic, statistics, DB, parser
+├── agents/             # Sub-agents and Main Domain Agents
+├── ui/                 # Streamlit UI layers
+├── tests/              # Pytest test suite
+├── scripts/            # CLI test pipelines
+└── data/               # Local SQLite & file storage
+
+Module Responsibilities
+core/monte_carlo.py: Pure statistical module (numpy, scipy.stats). No UI or LLM logic.
+core/database.py: SQLAlchemy ORM models and SQLite session handlers.
+core/parser.py: pdfplumber / PyPDF2 extraction for plain text, tables, and figure captions.
+core/rag_engine.py: Keyword/BM25 local search fallback + FAISS embedding retriever.
+agents/: Must accept standard dict/dataclass inputs and return typed outputs or Pydantic models.
+3. Code Quality & Testing Rules
+Testability First (VS Code Integration):
+Every module in core/ and agents/ MUST be independently testable using pytest from VS Code terminal without launching Streamlit.
+Keep functions side-effect-free where possible.
+Typing & Documentation:
+Use Python type hints (typing.Dict, typing.List, typing.Optional, pydantic.BaseModel) for all function signatures.
+Docstrings must specify inputs, outputs, and mathematical formulas used (if applicable).
+Streamlit Session State Discipline:
+Manage all application state using a centralized state manager (ui/state_manager.py).
+Do not re-query the database or re-run Monte Carlo simulations on every UI rerun unless explicitly triggered by a button or parameter change.
+4. Prompting Templates for AI Code Generation
+When asking an AI model to write a new module, use this prompt structure:
+"Write the implementation for [module_path]. Adhere strictly to SKILL.md. Ensure zero external LLM dependence by using MockLLMProvider fallback, add full typing, and provide a corresponding pytest unit test in tests/."
+
+
+--- FILE: .\.pytest_cache\README.md ---
+# pytest cache directory #
+
+This directory contains data from the pytest's cache plugin,
+which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+
+**Do not** commit this to version control.
+
+See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+
+
+--- FILE: .\agents\__init__.py ---
+
+
+--- FILE: .\agents\main_agents\ex_ante_agent.py ---
+from typing import Dict, Any, Optional
+from core.monte_carlo import MonteCarloEngine
+from core.llm_provider import BaseLLMProvider
+from core.rag_engine import SimpleRAGEngine
+
+class ExAnteAgent:
+    """
+    عامل ارزیابی پیشینی همراه با پشتیبانی از موتور RAG محلی برای تحلیل شواهد متنی سند.
+    """
+    def __init__(self, llm_provider: BaseLLMProvider):
+        """
+        :param llm_provider: نمونه‌ای از ارائه‌دهنده هوش مصنوعی (Mock یا Real)
+        """
+        self.llm_provider = llm_provider
+        self.mc_engine = MonteCarloEngine(num_simulations=10000)
+        self.rag_engine = SimpleRAGEngine(chunk_size=50)
+
+    def evaluate_proposal(self, proposal_data: Dict[str, Any], raw_text: Optional[str] = None) -> Dict[str, Any]:
+        """
+        ارزیابی کامل پروپوزال شامل محاسبات کمی مونت‌کارلو، بازیابی متنی RAG و تحلیل کیفی.
+        """
+        # ۱. محاسبات کمی شبیه‌سازی مونت‌کارلو
+        cost_triplet = (proposal_data['cost_p10'], proposal_data['cost_p50'], proposal_data['cost_p90'])
+        benefit_triplet = (proposal_data['benefit_p10'], proposal_data['benefit_p50'], proposal_data['benefit_p90'])
+        
+        mc_results = self.mc_engine.run_roi_simulation(
+            cost_p10_p50_p90=cost_triplet,
+            benefit_p10_p50_p90=benefit_triplet,
+            p_success=proposal_data.get('p_success', 0.8)
+        )
+
+        # ۲. بازیابی متنی در صورت وجود متن خام سند
+        rag_evidence = []
+        if raw_text:
+            self.rag_engine.index_document(doc_id=proposal_data.get('title', 'doc'), text=raw_text)
+            rag_evidence = self.rag_engine.retrieve_relevant_chunks(query="ریسک هزینه فنی چالش", top_k=2)
+
+        # ۳. ارسال داده‌ها به LLM برای ارزیابی کیفی
+        prompt = (
+            f"Evaluate proposal '{proposal_data.get('title')}' "
+            f"with VaR 95% = {mc_results['var_95']}% and Mean ROI = {mc_results['mean_roi']}%"
+        )
+        llm_assessment = self.llm_provider.generate_json(prompt, schema_description="Ex-ante evaluation schema")
+
+        status = "HIGH_CONFIDENCE" if mc_results['var_95'] > 0 else "MODERATE_RISK"
+
+        return {
+            "proposal_title": proposal_data.get('title'),
+            "quantitative_metrics": mc_results,
+            "qualitative_assessment": llm_assessment,
+            "rag_evidence": rag_evidence,
+            "confidence_level_status": status
+        }
+
+--- FILE: .\agents\main_agents\ex_post_agent.py ---
+from typing import Dict, Any
+from core.llm_provider import BaseLLMProvider
+
+class ExPostAgent:
+    """
+    عامل ارزیابی پسینی برای سنجش ارزش‌آفرینی واقعی پس از خاتمه پروژه.
+    """
+    def __init__(self, llm_provider: BaseLLMProvider):
+        self.llm_provider = llm_provider
+
+    def evaluate_ex_post(self, actual_cost: float, realized_benefit: float) -> Dict[str, Any]:
+        """
+        محاسبه بازگشت سرمایه واقعی (Realized ROI) و تحلیل کیفی دستاوردها.
+        """
+        net_value = realized_benefit - actual_cost
+        realized_roi = (net_value / max(actual_cost, 1.0)) * 100
+
+        prompt = f"Ex-post value evaluation: Actual Cost = {actual_cost}, Realized Benefit = {realized_benefit}"
+        llm_assessment = self.llm_provider.generate_json(prompt, schema_description="Ex-post evaluation schema")
+
+        return {
+            "actual_cost": actual_cost,
+            "realized_benefit": realized_benefit,
+            "net_value": round(net_value, 2),
+            "realized_roi": round(realized_roi, 2),
+            "value_certificate_status": "APPROVED" if realized_roi > 0 else "UNDER_REVIEW",
+            "summary": llm_assessment.get("message", "ارزیابی پسینی با موفقیت تکمیل شد.")
+        }
+
+--- FILE: .\agents\main_agents\process_agent.py ---
+from typing import Dict, Any, List
+from core.llm_provider import BaseLLMProvider
+
+class ProcessAgent:
+    """
+    عامل پایش فرآیندی برای ردیابی انحرافات زمانی و بودجه‌ای مایلستون‌های پروژه.
+    """
+    def __init__(self, llm_provider: BaseLLMProvider):
+        self.llm_provider = llm_provider
+
+    def monitor_process(self, milestone_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        تحلیل انحراف بودجه و زمان مایلستون‌ها.
+        """
+        total_planned_budget = sum(m.get('planned_budget', 0) for m in milestone_data)
+        total_actual_budget = sum(m.get('actual_budget', 0) for m in milestone_data)
+        
+        total_planned_days = sum(m.get('planned_duration_days', 0) for m in milestone_data)
+        total_actual_days = sum(m.get('actual_duration_days', 0) for m in milestone_data)
+
+        # محاسبه درصد انحرافات
+        cost_variance_pct = ((total_actual_budget - total_planned_budget) / max(total_planned_budget, 1.0)) * 100
+        schedule_variance_pct = ((total_actual_days - total_planned_days) / max(total_planned_days, 1)) * 100
+
+        # تعیین وضعیت هشدار
+        if cost_variance_pct > 15 or schedule_variance_pct > 20:
+            status = "CRITICAL_VARIANCE"
+        elif cost_variance_pct > 5 or schedule_variance_pct > 10:
+            status = "WARNING"
+        else:
+            status = "ON_TRACK"
+
+        # تحلیل کیفی از LLM
+        prompt = f"Process monitoring alert: Cost Variance = {cost_variance_pct:.1f}%, Schedule Variance = {schedule_variance_pct:.1f}%"
+        llm_advice = self.llm_provider.generate_json(prompt, schema_description="Process monitoring schema")
+
+        return {
+            "status": status,
+            "cost_variance_pct": round(cost_variance_pct, 2),
+            "schedule_variance_pct": round(schedule_variance_pct, 2),
+            "mitigation_advice": llm_advice.get("mitigation_advice", "اقدام اصلاحی خاصی ثبت نشده است.")
+        }
+
+--- FILE: .\agents\main_agents\__init__.py ---
+
+
+--- FILE: .\agents\sub_agents\data_synth_agent.py ---
+
+
+--- FILE: .\agents\sub_agents\doc_parser_agent.py ---
+
+
+--- FILE: .\agents\sub_agents\__init__.py ---
+
+
+--- FILE: .\config\settings.yaml ---
+
+
+--- FILE: .\core\carbon_tax_engine.py ---
+import numpy as np
+from typing import Dict, Any, Tuple
+
+
+class CarbonTaxEngine:
+    """
+    موتور شبیه‌سازی مالیاتی:
+    ۱. عوارض و معافیت کربن صادراتی اروپا (CBAM)
+    ۲. اعتبار و معافیت مالیاتی پروژه‌های تحقیق و توسعه طبق قوانین ایران (قانون جهش تولید)
+    """
+    def __init__(self, num_simulations: int = 10000, seed: int = 42):
+        self.num_simulations = int(num_simulations)
+        np.random.seed(seed)
+
+    def generate_pert_samples(self, low: float, mode: float, high: float) -> np.ndarray:
+        """تولید نمونه‌های تصادفی با توزیع PERT"""
+        low, high = min(low, high), max(low, high)
+        mode = min(max(mode, low), high)
+
+        if low == high:
+            return np.full(self.num_simulations, low, dtype=float)
+
+        gamma_shape = 4.0
+        alpha = 1.0 + gamma_shape * (mode - low) / (high - low)
+        beta_val = 1.0 + gamma_shape * (high - mode) / (high - low)
+        
+        beta_samples = np.random.beta(alpha, beta_val, self.num_simulations)
+        return low + beta_samples * (high - low)
+
+    def simulate_eu_cbam_benefit(
+        self,
+        annual_export_tons_triplet: Tuple[float, float, float],     # تناژ صادرات فولاد به اروپا (تن)
+        co2_reduction_per_ton_kg: float,                            # کاهش CO2 به ازای هر تن (کیلوگرم)
+        carbon_tax_per_ton_usd_triplet: Tuple[float, float, float], # مالیات کربن اروپا (دلار / تن CO2)
+        usd_to_toman_rate: float = 65000.0,
+        years: int = 3
+    ) -> Dict[str, Any]:
+        """
+        محاسبه صرفه‌جویی حاصل از معافیت جریمه‌های صادراتی بر مبنای قوانین اروپا (CBAM).
+        """
+        export_samples = self.generate_pert_samples(*annual_export_tons_triplet)
+        tax_samples = self.generate_pert_samples(*carbon_tax_per_ton_usd_triplet)
+        
+        co2_reduced_tons = export_samples * (co2_reduction_per_ton_kg / 1000.0)
+        annual_savings_usd = co2_reduced_tons * tax_samples
+        annual_savings_toman = (annual_savings_usd * usd_to_toman_rate) / 1_000_000.0
+        
+        return {
+            "mean_annual_co2_reduced_tons": round(float(np.mean(co2_reduced_tons)), 1),
+            "mean_annual_carbon_savings_usd": round(float(np.mean(annual_savings_usd)), 2),
+            "mean_annual_carbon_savings_toman": round(float(np.mean(annual_savings_toman)), 2),
+            "total_lifetime_savings_toman": round(float(np.mean(annual_savings_toman * years)), 2),
+            "raw_savings_toman": annual_savings_toman
+        }
+
+    def simulate_iran_tax_credit(
+        self,
+        rd_cost_triplet: Tuple[float, float, float],          # هزینه R&D پروژه (میلیون تومان)
+        approved_cost_pct_triplet: Tuple[float, float, float],# درصد تایید هزینه توسط کارگروه (P10, P50, P90)
+        corporate_tax_rate: float = 0.20                      # نرخ مالیات عملکرد صنعتی در ایران (۲۰ یا ۲۵ درصد)
+    ) -> Dict[str, Any]:
+        """
+        محاسبه اعتبار مالیاتی و کاهش مالیات قطعی بر اساس ماده ۱۱ قانون جهش تولید دانش‌بنیان در ایران.
+        """
+        rd_costs = self.generate_pert_samples(*rd_cost_triplet)
+        approved_pcts = self.generate_pert_samples(*approved_cost_pct_triplet)
+        
+        # هزینه‌های مورد تایید اداره مالیات
+        approved_rd_expenditures = rd_costs * approved_pcts
+        
+        # میزان اعتبار مالیاتی قابل کسر از مالیات عملکرد سالانه
+        tax_credit_savings_toman = approved_rd_expenditures * corporate_tax_rate
+        
+        return {
+            "mean_rd_cost_toman": round(float(np.mean(rd_costs)), 2),
+            "mean_approved_rd_cost": round(float(np.mean(approved_rd_expenditures)), 2),
+            "mean_iran_tax_credit_savings": round(float(np.mean(tax_credit_savings_toman)), 2),
+            "savings_p90_toman": round(float(np.percentile(tax_credit_savings_toman, 90)), 2),
+            "raw_tax_savings": tax_credit_savings_toman
+        }
+
+--- FILE: .\core\database.py ---
+import datetime
+from typing import Dict, Any, List
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+
+# تعریف کلاس پایه برای مدل‌های ORM در SQLAlchemy
+Base = declarative_base()
+
+
+class Proposal(Base):
+    """
+    جدول پروپوزال‌ها: ذخیره اطلاعات پیشینی، سه‌گانه‌های مالی/فنی و شاخص‌های محاسباتی ارزیابی
+    """
+    __tablename__ = 'proposals'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    title = Column(String(255), nullable=False)
+    organization = Column(String(255), default="فولاد مبارکه")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    # سه‌گانه‌های تخمین هزینه (میلیون تومان)
+    cost_p10 = Column(Float, nullable=False, default=8000.0)
+    cost_p50 = Column(Float, nullable=False, default=10000.0)
+    cost_p90 = Column(Float, nullable=False, default=14000.0)
+
+    # سه‌گانه‌های تخمین منافع (میلیون تومان)
+    benefit_p10 = Column(Float, nullable=False, default=3000.0)
+    benefit_p50 = Column(Float, nullable=False, default=5000.0)
+    benefit_p90 = Column(Float, nullable=False, default=8000.0)
+
+    # احتمال موفقیت فنی (بین 0 تا 1)
+    p_success = Column(Float, default=0.85)
+
+    # شاخص‌های آماری محاسباتی (خروجی شبیه‌سازی مونت‌کارلو)
+    mean_roi = Column(Float, nullable=True)
+    var_95 = Column(Float, nullable=True)
+    probability_of_loss = Column(Float, nullable=True)
+    risk_status = Column(String(50), nullable=True)
+
+    # رابطه یک‌به‌چند با مایلستون‌ها
+    milestones = relationship("Milestone", back_populates="proposal", cascade="all, delete-orphan")
+
+
+class Milestone(Base):
+    """
+    جدول مایلستون‌ها: پایش فرآیندی زمان و بودجه در طول پروژه
+    """
+    __tablename__ = 'milestones'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    proposal_id = Column(Integer, ForeignKey('proposals.id'))
+    title = Column(String(255), nullable=False)
+    
+    # بودجه برنامه‌ریزی‌شده و واقعی (میلیون تومان)
+    planned_budget = Column(Float, nullable=False)
+    actual_budget = Column(Float, default=0.0)
+    
+    # زمان‌بندی برنامه‌ریزی‌شده و واقعی (بر حسب روز)
+    planned_duration_days = Column(Integer, nullable=False)
+    actual_duration_days = Column(Integer, default=0)
+    
+    # درصد پیشرفت پروژه
+    completion_percentage = Column(Float, default=0.0)
+
+    # رابطه با پروپوزال مربوطه
+    proposal = relationship("Proposal", back_populates="milestones")
+
+
+def init_db(db_path: str = "sqlite:///pajoheshyar.db"):
+    """
+    راه‌اندازی اتصال دیتابیس و ساخت خودکار جدول‌ها
+    """
+    engine = create_engine(db_path, echo=False)
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine)
+
+
+def save_proposal_evaluation(session, proposal_data: Dict[str, Any], evaluation_result: Dict[str, Any]) -> Proposal:
+    """
+    ذخیره‌سازی کامل ورودی‌های پروپوزال و نتایج ارزیابی پیشینی در دیتابیس
+    """
+    metrics = evaluation_result.get("quantitative_metrics", {})
+    
+    new_proposal = Proposal(
+        title=proposal_data.get("title", "بدون عنوان"),
+        cost_p10=proposal_data.get("cost_p10", 8000.0),
+        cost_p50=proposal_data.get("cost_p50", 10000.0),
+        cost_p90=proposal_data.get("cost_p90", 14000.0),
+        benefit_p10=proposal_data.get("benefit_p10", 3000.0),
+        benefit_p50=proposal_data.get("benefit_p50", 5000.0),
+        benefit_p90=proposal_data.get("benefit_p90", 8000.0),
+        p_success=proposal_data.get("p_success", 0.85),
+        mean_roi=metrics.get("mean_roi", 0.0),
+        var_95=metrics.get("var_95", 0.0),
+        probability_of_loss=metrics.get("probability_of_loss", 0.0),
+        risk_status=evaluation_result.get("confidence_level_status", "UNKNOWN")
+    )
+    
+    session.add(new_proposal)
+    session.commit()
+    return new_proposal
+
+
+def get_all_proposals(session) -> List[Proposal]:
+    """
+    استخراج تمامی پروپوزال‌های ثبت‌شده در پایگاه داده جهت نمایش در تاریخچه.
+    """
+    return session.query(Proposal).order_by(Proposal.created_at.desc()).all()
+
+
+def delete_proposal_by_id(session, proposal_id: int) -> bool:
+    """
+    حذف یک پروپوزال مشخص از پایگاه داده بر اساس شناسه (ID).
+    """
+    proposal = session.query(Proposal).filter(Proposal.id == proposal_id).first()
+    if proposal:
+        session.delete(proposal)
+        session.commit()
+        return True
+    return False
+
+--- FILE: .\core\energy_simulation.py ---
+import numpy as np
+from typing import Dict, Any, Tuple
+
+
+class EnergyRiskEngine:
+    """
+    موتور شبیه‌سازی مونت‌کارلو برای سنجش ریسک‌های ناشی از ناترازی گاز و برق
+    و محاسبه هزینه فرصت ناشی از توقف تولید در پروژه‌های صنعتی.
+    """
+    def __init__(self, num_simulations: int = 10000, seed: int = 42):
+        self.num_simulations = int(num_simulations)
+        np.random.seed(seed)
+
+    def generate_pert_samples(self, low: float, mode: float, high: float) -> np.ndarray:
+        """تولید توزیع PERT برای متغیرهای تصادفی"""
+        low, high = min(low, high), max(low, high)
+        mode = min(max(mode, low), high)
+
+        if low == high:
+            return np.full(self.num_simulations, low, dtype=float)
+
+        gamma_shape = 4.0
+        alpha = 1.0 + gamma_shape * (mode - low) / (high - low)
+        beta_val = 1.0 + gamma_shape * (high - mode) / (high - low)
+        
+        beta_samples = np.random.beta(alpha, beta_val, self.num_simulations)
+        return low + beta_samples * (high - low)
+
+    def simulate_energy_impact(
+        self,
+        base_annual_benefit: float,
+        power_outage_days_triplet: Tuple[float, float, float],   # روزهای قطعی برق در تابستان (P10, P50, P90)
+        gas_outage_days_triplet: Tuple[float, float, float],     # روزهای قطعی گاز در زمستان (P10, P50, P90)
+        daily_downtime_loss: float,                              # خسارت روزانه توقف به میلیون تومان
+        years: int = 3
+    ) -> Dict[str, Any]:
+        """
+        محاسبه کاهش منافع پروژه ناشی از قطعی‌های پیش‌بینی‌نشده انرژی.
+        """
+        # ۱. نمونه‌گیری روزهای قطعی سالانه گاز و برق
+        power_days = self.generate_pert_samples(*power_outage_days_triplet)
+        gas_days = self.generate_pert_samples(*gas_outage_days_triplet)
+        
+        # مجموع روزهای توقف ناشی از انرژی در هر سال
+        total_curtailment_days = power_days + gas_days
+        
+        # ۲. محاسبه زیان سالانه عدم تولید (میلیون تومان)
+        annual_energy_losses = total_curtailment_days * daily_downtime_loss
+        
+        # ۳. محاسبه منفعت تعدیل‌شده پس از کسر خسارت انرژی
+        adjusted_annual_benefit = np.maximum(base_annual_benefit - annual_energy_losses, 0.0)
+        
+        # تجمیع خسارت کل در طول دوره چندساله
+        total_lifetime_losses = annual_energy_losses * years
+        
+        return {
+            "mean_outage_days_yearly": round(float(np.mean(total_curtailment_days)), 1),
+            "mean_annual_loss_toman": round(float(np.mean(annual_energy_losses)), 2),
+            "total_expected_energy_loss": round(float(np.mean(total_lifetime_losses)), 2),
+            "max_annual_loss_scenario": round(float(np.percentile(annual_energy_losses, 95)), 2),
+            "adjusted_annual_benefit": round(float(np.mean(adjusted_annual_benefit)), 2),
+            "raw_loss_samples": annual_energy_losses
+        }
+
+--- FILE: .\core\llm_provider.py ---
+from abc import ABC, abstractmethod
+from typing import Dict, Any, Optional
+
+class BaseLLMProvider(ABC):
+    """
+    اینترفیس انتزاعی پایه برای تمامی ارائه‌دهندگان هوش مصنوعی در پلتفرم پژوهشیار.
+    """
+    @abstractmethod
+    def generate_json(self, prompt: str, schema_description: str) -> Dict[str, Any]:
+        """تولید پاسخ ساختاریافته به فرمت JSON"""
+        pass
+
+    @abstractmethod
+    def generate_text(self, prompt: str) -> str:
+        """تولید پاسخ متنی ساده"""
+        pass
+
+    @abstractmethod
+    def interpret_monte_carlo(self, metrics: Dict[str, Any], p_success: float) -> str:
+        """تفسیر مدیریتی و هوشمند نتایج شبیه‌سازی مونت‌کارلو"""
+        pass
+
+
+class MockLLMProvider(BaseLLMProvider):
+    """
+    ارائه‌دهنده آفلاین و مبتنی بر قوانین ایمن (Fallback).
+    تضمین‌کننده پایداری سیستم بدون وابستگی به سرویس‌های ابری یا محلی طبق ضوابط SKILL.md.
+    """
+    
+    def generate_json(self, prompt: str, schema_description: str) -> Dict[str, Any]:
+        prompt_lower = prompt.lower()
+        
+        if "ex_ante" in prompt_lower or "ارزیابی" in prompt_lower:
+            return {
+                "technical_success_probability": 0.85,
+                "recommended_action": "APPROVE_WITH_CONDITIONS",
+                "risk_summary": "پیچیدگی فنی الگوریتم متناسب است؛ ریسک مالی در حد قابل مدیریت ارزیابی می‌شود."
+            }
+        elif "process" in prompt_lower or "پایش" in prompt_lower:
+            return {
+                "variance_status": "WARNING",
+                "revised_completion_probability": 0.82,
+                "mitigation_advice": "تخصیص مجدد منابع محاسباتی جهت جلوگیری از تاخیر زمانی."
+            }
+        
+        return {
+            "technical_success_probability": 0.85,
+            "recommended_action": "APPROVE_WITH_CONDITIONS",
+            "risk_summary": "پیچیدگی فنی الگوریتم متناسب است."
+        }
+
+    def generate_text(self, prompt: str) -> str:
+        return "[پاسخ آفلاین]: تحلیل سیستم با موفقیت اجرا شد."
+
+    def interpret_monte_carlo(self, metrics: Dict[str, Any], p_success: float) -> str:
+        p_fail_pct = round((1 - p_success) * 100, 1)
+        mean_roi = metrics.get("mean_roi", 0.0)
+        var_95 = metrics.get("var_95", -100.0)
+        
+        return (
+            f"📖 **تفسیر هوشمند مدیریتی (تولیدشده توسط LLM):**\n\n"
+            f"* **ریسک شکست فنی:** این پروژه دارای **{p_fail_pct}% احتمال عدم موفقیت کامل** است که منجر به زیان کل سرمایه می‌شود.\n"
+            f"* **بازدهی در صورت موفقیت:** در صورت عبور از چالش‌های فنی، میانگین نرخ بازگشت سرمایه برابر با **{mean_roi}%** خواهد بود.\n"
+            f"* **ارزیابی VaR 95% ({var_95}%):** به دلیل سهم {p_fail_pct} درصدی احتمال عدم موفقیت، شاخص ارزش در معرض ریسک ۵ درصد بدترین سناریوها روی حداکثر زیان تنظیم شده است.\n"
+            f"* **توصیه استراتژیک:** تصویب مشروط به تعریف مایلستون‌های ارزیابی ریسک فنی در فاز اول."
+        )
+
+
+class LLMFactory:
+    """
+    کارخانه مدیریت و نمونه‌سازی ارائه‌دهندگان هوش مصنوعی.
+    """
+    @staticmethod
+    def get_provider(provider_type: str = "mock", api_key: Optional[str] = None) -> BaseLLMProvider:
+        if provider_type == "mock" or not api_key:
+            return MockLLMProvider()
+        return MockLLMProvider()
+
+--- FILE: .\core\monte_carlo.py ---
+import numpy as np
+from typing import Dict, Any, Tuple
+
+class MonteCarloEngine:
+    """
+    موتور شبیه‌سازی مونت‌کارلو با قابلیت محاسبه اثرات تورم ریالی،
+    نوسانات ارزی (دلار، یورو، یوان) و صرفه‌جویی ارزی بومی‌سازی.
+    """
+    def __init__(self, num_simulations: int = 10000, seed: int = 42):
+        self.num_simulations = int(num_simulations)
+        np.random.seed(seed)
+
+    def generate_pert_samples(self, low: float, mode: float, high: float) -> np.ndarray:
+        """
+        تولید نمونه‌های تصادفی با توزیع PERT همراه با اعتبارسنجی خودکار ترتیب مقادیر.
+        """
+        # مرتب‌سازی خودکار در صورت وارد کردن جابجای مقادیر توسط کاربر
+        low, high = min(low, high), max(low, high)
+        mode = min(max(mode, low), high)
+
+        # اگر مقادیر برابر باشند، آرایه ثابت تولید می‌شود
+        if low == high:
+            return np.full(self.num_simulations, low, dtype=float)
+
+        gamma_shape = 4.0
+        alpha = 1.0 + gamma_shape * (mode - low) / (high - low)
+        beta_val = 1.0 + gamma_shape * (high - mode) / (high - low)
+        
+        beta_samples = np.random.beta(alpha, beta_val, self.num_simulations)
+        return low + beta_samples * (high - low)
+
+    def run_roi_simulation(
+        self,
+        cost_p10_p50_p90: Tuple[float, float, float],
+        benefit_p10_p50_p90: Tuple[float, float, float],
+        inflation_p10_p50_p90: Tuple[float, float, float] = (0.35, 0.50, 0.70),
+        fx_growth_p10_p50_p90: Tuple[float, float, float] = (0.30, 0.45, 0.65),
+        currency_type: str = "USD",
+        base_fx_rate: float = 65000.0,       # قیمت اولیه ارز به تومان
+        annual_fx_savings: float = 0.0,      # میزان صرفه‌جویی ارزی سالانه
+        p_success: float = 0.85,
+        real_discount_rate: float = 0.10,
+        years: int = 3
+    ) -> Dict[str, Any]:
+        """
+        اجرای شبیه‌سازی جامع با اعمال مدل تورم فیشر و رشد نرخ ارز.
+        """
+        # ۱. نمونه‌گیری توزیع PERT
+        cost_samples = self.generate_pert_samples(*cost_p10_p50_p90)
+        annual_domestic_benefit = self.generate_pert_samples(*benefit_p10_p50_p90)
+        inflation_samples = self.generate_pert_samples(*inflation_p10_p50_p90)
+        fx_growth_samples = self.generate_pert_samples(*fx_growth_p10_p50_p90)
+        
+        # ۲. متغیر تصادفی موفقیت فنی پروژه
+        p_success_bounded = min(max(float(p_success), 0.0), 1.0)
+        success_mask = np.random.binomial(1, p_success_bounded, self.num_simulations)
+        
+        # ۳. تنزیل جریان‌های نقدی اسمی بر اساس رابطه فیشر: (1 + i) = (1 + r)(1 + pi)
+        total_discounted_benefits = np.zeros(self.num_simulations)
+        total_realized_fx_savings_toman = np.zeros(self.num_simulations)
+        
+        nominal_discount_samples = (1.0 + real_discount_rate) * (1.0 + inflation_samples) - 1.0
+        # جلوگیری از مقادیر نامعتبر تنزیل
+        nominal_discount_samples = np.maximum(nominal_discount_samples, -0.99)
+
+        for t in range(1, int(years) + 1):
+            # الف) رشد منفعت ریالی متناسب با تورم
+            escalated_domestic_benefit = annual_domestic_benefit * ((1.0 + inflation_samples) ** t)
+            
+            # ب) ارزش ریالی صرفه‌جویی ارزی در سال t (میلیون تومان)
+            current_fx_rate = base_fx_rate * ((1.0 + fx_growth_samples) ** t)
+            fx_savings_in_toman_millions = (annual_fx_savings * current_fx_rate) / 1_000_000.0
+            
+            # تجمیع منافع سال t
+            total_annual_benefit = escalated_domestic_benefit + fx_savings_in_toman_millions
+            
+            # تنزیل جریان نقدی به زمان مبدأ
+            discount_factor = 1.0 / ((1.0 + nominal_discount_samples) ** t)
+            total_discounted_benefits += (total_annual_benefit * discount_factor)
+            total_realized_fx_savings_toman += fx_savings_in_toman_millions
+
+        # ۴. محاسبه ارزش خالص فعلی (NPV) و نرخ بازگشت سرمایه (ROI)
+        npv_samples = (total_discounted_benefits * success_mask) - cost_samples
+        roi_samples = (npv_samples / np.maximum(cost_samples, 1.0)) * 100.0
+
+        # ۵. محاسبه شاخص‌های آماری خروجی
+        mean_roi = float(np.mean(roi_samples))
+        std_roi = float(np.std(roi_samples))
+        var_95 = float(np.percentile(roi_samples, 5))
+        var_99 = float(np.percentile(roi_samples, 1))
+
+        return {
+            "mean_roi": round(mean_roi, 2),
+            "std_dev": round(std_roi, 2),
+            "var_95": round(var_95, 2),
+            "var_99": round(var_99, 2),
+            "expected_npv": round(float(np.mean(npv_samples)), 2),
+            "probability_of_loss": round(float(np.mean(roi_samples < 0) * 100), 2),
+            "expected_total_fx_savings_toman": round(float(np.mean(total_realized_fx_savings_toman)), 2),
+            "currency_type": currency_type,
+            "raw_roi_samples": roi_samples
+        }
+
+--- FILE: .\core\parser.py ---
+import pypdf
+import re
+from typing import Dict, Any
+from pathlib import Path
+
+class DocumentParser:
+    """
+    ماژول استخراج متون و داده‌های ساختاریافته از اسناد پروپوزال (PDF).
+    """
+    def __init__(self, file_path: str):
+        self.file_path = Path(file_path)
+
+    def extract_text(self) -> str:
+        """
+        استخراج کامل متون از تمام صفحات فایل PDF.
+        """
+        if not self.file_path.exists():
+            raise FileNotFoundError(f"فایل در مسیر {self.file_path} یافت نشد.")
+
+        extracted_text = ""
+        with open(self.file_path, "rb") as file:
+            reader = pypdf.PdfReader(file)
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    extracted_text += text + "\n"
+        
+        return extracted_text.strip()
+
+    def parse_financial_triplets(self) -> Dict[str, float]:
+        """
+        استخراج هوشمند سه‌گانه‌های مالی از متن سند با الگوی کلیدواژه‌ها.
+        """
+        text = self.extract_text()
+        
+        # مقادیر پیش‌فرض در صورت عدم یافتن عدد در متن
+        parsed_data = {
+            "cost_p10": 8000.0,
+            "cost_p50": 10000.0,
+            "cost_p90": 14000.0,
+            "benefit_p10": 3000.0,
+            "benefit_p50": 5000.0,
+            "benefit_p90": 8000.0,
+            "p_success": 0.85
+        }
+
+        # جستجوی اعداد همراه با کلیدواژه‌های هزینه و منافع
+        cost_matches = re.findall(r'(?:هزینه|بودجه)\s*:\s*([\d\.\,]+)', text)
+        if cost_matches:
+            try:
+                base_cost = float(cost_matches[0].replace(',', ''))
+                parsed_data["cost_p10"] = round(base_cost * 0.8, 2)
+                parsed_data["cost_p50"] = round(base_cost, 2)
+                parsed_data["cost_p90"] = round(base_cost * 1.4, 2)
+            except ValueError:
+                pass
+
+        return parsed_data
+
+--- FILE: .\core\rag_engine.py ---
+from typing import List, Dict, Any
+import re
+
+class SimpleRAGEngine:
+    """
+    موتور جستجو و بازیابی محلی اسناد (RAG) بدون وابستگی به سرویس‌های ابری.
+    """
+    def __init__(self, chunk_size: int = 300):
+        self.chunk_size = chunk_size
+        self.documents_chunks: List[Dict[str, Any]] = []
+
+    def index_document(self, doc_id: str, text: str) -> None:
+        """
+        تقسیم متن سند به بخش‌های کوچک‌تر (Chunks) و نمایه سازی آن‌ها.
+        """
+        # پاک‌سازی اولیه متن
+        clean_text = re.sub(r'\s+', ' ', text).strip()
+        
+        # تقسیم متن به تکه‌های کوچک‌تر
+        words = clean_text.split(' ')
+        for i in range(0, len(words), self.chunk_size):
+            chunk_text = " ".join(words[i:i + self.chunk_size])
+            if chunk_text:
+                self.documents_chunks.append({
+                    "doc_id": doc_id,
+                    "chunk_id": len(self.documents_chunks) + 1,
+                    "text": chunk_text
+                })
+
+    def retrieve_relevant_chunks(self, query: str, top_k: int = 2) -> List[Dict[str, Any]]:
+        """
+        جستجوی مرتبط‌ترین بخش‌های سند بر اساس کلیدواژه‌های پرسش.
+        """
+        query_words = set(query.lower().split())
+        scored_chunks = []
+
+        for chunk in self.documents_chunks:
+            chunk_words = set(chunk["text"].lower().split())
+            # محاسبه میزان اشتراک کلمات پرسش و تکه متن
+            overlap = len(query_words.intersection(chunk_words))
+            if overlap > 0:
+                scored_chunks.append((overlap, chunk))
+
+        # مرتب‌سازی بر اساس بیشترین تشابه
+        scored_chunks.sort(key=lambda x: x[0], reverse=True)
+        return [item[1] for item in scored_chunks[:top_k]]
+
+--- FILE: .\core\reliability_engine.py ---
+import numpy as np
+from typing import Dict, Any, Tuple
+
+
+class ReliabilityEngine:
+    """
+    موتور شبیه‌سازی مونت‌کارلو برای ارزیابی قابلیت اطمینان تجهیزات،
+    محاسبه نرخ خرابی (MTBF)، زمان تعمیر (MTTR) و زیان توقف خط تولید.
+    """
+    def __init__(self, num_simulations: int = 10000, seed: int = 42):
+        self.num_simulations = int(num_simulations)
+        np.random.seed(seed)
+
+    def generate_pert_samples(self, low: float, mode: float, high: float) -> np.ndarray:
+        """تولید نمونه‌های تصادفی با توزیع PERT"""
+        low, high = min(low, high), max(low, high)
+        mode = min(max(mode, low), high)
+
+        if low == high:
+            return np.full(self.num_simulations, low, dtype=float)
+
+        gamma_shape = 4.0
+        alpha = 1.0 + gamma_shape * (mode - low) / (high - low)
+        beta_val = 1.0 + gamma_shape * (high - mode) / (high - low)
+        
+        beta_samples = np.random.beta(alpha, beta_val, self.num_simulations)
+        return low + beta_samples * (high - low)
+
+    def simulate_downtime_risk(
+        self,
+        base_annual_benefit: float,
+        mtbf_hours_triplet: Tuple[float, float, float],    # ساعت بین خرابی (P10, P50, P90)
+        mttr_hours_triplet: Tuple[float, float, float],    # ساعت زمان تعمیر (P10, P50, P90)
+        hourly_downtime_loss: float,                       # هزینه خسارت هر ساعت توقف خط (میلیون تومان)
+        annual_operating_hours: float = 7200.0,            # کل ساعت کاری خط در سال
+        years: int = 3
+    ) -> Dict[str, Any]:
+        """
+        اجرای شبیه‌سازی مونت‌کارلو برای محاسبه توقفات خط و زیان مالی آن.
+        """
+        # ۱. نمونه‌گیری مقادیر MTBF و MTTR با توزیع PERT
+        mtbf_samples = self.generate_pert_samples(*mtbf_hours_triplet)
+        mttr_samples = self.generate_pert_samples(*mttr_hours_triplet)
+        
+        # ۲. محاسبه تعداد خرابی‌های سالانه (جلوگیری از تقسیم بر صفر)
+        safe_mtbf = np.maximum(mtbf_samples, 10.0)
+        expected_failures_per_year = annual_operating_hours / safe_mtbf
+        
+        # نمونه‌گیری تعداد وقوع رخداد خرابی با توزیع پواسون
+        simulated_failures = np.random.poisson(expected_failures_per_year)
+        
+        # ۳. محاسبه کل ساعات توقف خط در سال
+        annual_downtime_hours = simulated_failures * mttr_samples
+        
+        # ۴. محاسبه قابلیت دسترسی خط (Availability Percentage)
+        availability_pct = (
+            (annual_operating_hours - np.minimum(annual_downtime_hours, annual_operating_hours))
+            / annual_operating_hours
+        ) * 100.0
+        
+        # ۵. محاسبه زیان سالانه توقفات (میلیون تومان)
+        annual_downtime_loss = annual_downtime_hours * hourly_downtime_loss
+        
+        # منفعت خالص تعدیل‌شده سالانه
+        adjusted_benefit = np.maximum(base_annual_benefit - annual_downtime_loss, 0.0)
+        
+        return {
+            "mean_annual_failures": round(float(np.mean(simulated_failures)), 1),
+            "mean_downtime_hours": round(float(np.mean(annual_downtime_hours)), 1),
+            "mean_availability_pct": round(float(np.mean(availability_pct)), 2),
+            "mean_annual_downtime_loss": round(float(np.mean(annual_downtime_loss)), 2),
+            "total_lifetime_loss": round(float(np.mean(annual_downtime_loss * years)), 2),
+            "adjusted_annual_benefit": round(float(np.mean(adjusted_benefit)), 2),
+            "max_downtime_hours_p95": round(float(np.percentile(annual_downtime_hours, 95)), 1),
+            "raw_downtime_hours": annual_downtime_hours
+        }
+
+--- FILE: .\core\reporter.py ---
+from typing import Dict, Any
+import datetime
+
+class EvaluationReporter:
+    """
+    ماژول تولید گزارش‌های مدیریتی و گواهی‌های ارزش‌آفرینی پروژه‌ها.
+    """
+    
+    @staticmethod
+    def generate_ex_ante_report(proposal_data: Dict[str, Any], evaluation_result: Dict[str, Any]) -> str:
+        """
+        تولید متن گزارش رسمی ارزیابی پیشینی پروپوزال جهت دانلود یا چاپ.
+        """
+        metrics = evaluation_result.get("quantitative_metrics", {})
+        now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        
+        report_content = f"""==================================================
+        گزارش رسمی ارزیابی پیشینی پروپوزال (سامانه پژوهشیار)
+==================================================
+تاریخ صدور: {now_str}
+عنوان پروپوزال: {proposal_data.get('title', 'بدون عنوان')}
+
+۱. ورودی‌های مالی و فنی:
+--------------------------------------------------
+- تخمین هزینه (خوش‌بینانه / محتمل / بدبینانه): {proposal_data.get('cost_p10')} / {proposal_data.get('cost_p50')} / {proposal_data.get('cost_p90')} میلیون تومان
+- تخمین منافع (خوش‌بینانه / محتمل / بدبینانه): {proposal_data.get('benefit_p10')} / {proposal_data.get('benefit_p50')} / {proposal_data.get('benefit_p90')} میلیون تومان
+- احتمال موفقیت فنی: {int(proposal_data.get('p_success', 0) * 100)}%
+
+۲. نتایج شبیه‌سازی آماری (مونت‌کارلو):
+--------------------------------------------------
+- میانگین نرخ بازگشت سرمایه (ROI): {metrics.get('mean_roi')}%
+- شاخص ارزش در معرض ریسک (VaR 95%): {metrics.get('var_95')}%
+- احتمال زیان مالی: {metrics.get('probability_of_loss')}%
+- سطح ریسک ارزیابی‌شده: {evaluation_result.get('confidence_level_status')}
+
+۳. خلاصه ارزیابی و توصیه سیستم:
+--------------------------------------------------
+پروژه از نظر شاخص‌های سودآوری و ریسک فنی مورد تحلیل قرار گرفت. 
+توصیه می‌شود مصوبه بر اساس الگوی مدیریت ریسک و تعریف مایلستون‌های فازبندی‌شده ابلاغ گردد.
+==================================================
+"""
+        return report_content
+
+--- FILE: .\core\supply_chain_engine.py ---
+import numpy as np
+from typing import Dict, Any, Tuple
+
+
+class SupplyChainEngine:
+    """
+    موتور شبیه‌سازی مونت‌کارلو برای ارزیابی ریسک‌های زنجیره تأمین،
+    مدت‌زمان تحویل تجهیزات (Lead-Time) و خسارت‌های ناشی از تأخیر لجستیکی.
+    """
+    def __init__(self, num_simulations: int = 10000, seed: int = 42):
+        self.num_simulations = int(num_simulations)
+        np.random.seed(seed)
+
+    def generate_pert_samples(self, low: float, mode: float, high: float) -> np.ndarray:
+        """تولید نمونه‌های تصادفی زمان تحویل با توزیع PERT"""
+        low, high = min(low, high), max(low, high)
+        mode = min(max(mode, low), high)
+
+        if low == high:
+            return np.full(self.num_simulations, low, dtype=float)
+
+        gamma_shape = 4.0
+        alpha = 1.0 + gamma_shape * (mode - low) / (high - low)
+        beta_val = 1.0 + gamma_shape * (high - mode) / (high - low)
+        
+        beta_samples = np.random.beta(alpha, beta_val, self.num_simulations)
+        return low + beta_samples * (high - low)
+
+    def simulate_lead_time_risk(
+        self,
+        planned_lead_time_days: float,                       # زمان مصوب تحویل تجهیز (روز)
+        actual_lead_time_triplet: Tuple[float, float, float], # سه‌گانه روزهای واقعی تحویل (P10, P50, P90)
+        daily_delay_cost: float,                             # هزینه خسارت روزانه تأخیر (میلیون تومان)
+        critical_delay_threshold: float = 60.0               # آستانه تأخیر بحرانی (روز)
+    ) -> Dict[str, Any]:
+        """
+        محاسبه توزیع روزهای تأخیر، خسارت مالی و احتمال عبور از آستانه بحرانی.
+        """
+        # ۱. نمونه‌گیری روزهای واقعی تحویل تجهیز
+        simulated_lead_times = self.generate_pert_samples(*actual_lead_time_triplet)
+        
+        # ۲. محاسبه روزهای تأخیر مازاد بر برنامه مصوب
+        delay_days = np.maximum(simulated_lead_times - planned_lead_time_days, 0.0)
+        
+        # ۳. محاسبه خسارت مالی ناشی از تأخیر پروژه (میلیون تومان)
+        financial_loss = delay_days * daily_delay_cost
+        
+        # ۴. محاسبه احتمال تأخیر حاد و بحرانی
+        prob_critical_delay = float(np.mean(delay_days >= critical_delay_threshold) * 100.0)
+        
+        # ۵. محاسبه شاخص‌های آماری
+        mean_lead_time = float(np.mean(simulated_lead_times))
+        mean_delay = float(np.mean(delay_days))
+        mean_loss = float(np.mean(financial_loss))
+        delay_p95 = float(np.percentile(delay_days, 95))
+        loss_p95 = float(np.percentile(financial_loss, 95))
+
+        return {
+            "mean_lead_time_days": round(mean_lead_time, 1),
+            "mean_delay_days": round(mean_delay, 1),
+            "mean_delay_cost": round(mean_loss, 2),
+            "max_delay_days_p95": round(delay_p95, 1),
+            "max_delay_cost_p95": round(loss_p95, 2),
+            "prob_critical_delay_pct": round(prob_critical_delay, 1),
+            "raw_delay_days": delay_days
+        }
+
+--- FILE: .\core\__init__.py ---
+
+
+--- FILE: .\OptiRND\README.md ---
+# OptiRND
+
+
+
+--- FILE: .\scripts\test_pipeline.py ---
+import sys
+from pathlib import Path
+
+# افزودن مسیر ریشه پروژه به پایتون
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.database import init_db, Proposal
+from core.llm_provider import LLMFactory
+from agents.main_agents.ex_ante_agent import ExAnteAgent
+
+def run_pipeline_test():
+    """
+    اجرای یکپارچه جریان کاری: دیتابیس -> عامل هوشمند -> مونت کارلو -> خروجی
+    """
+    print("--- 🚀 در حال اجرای تست یکپارچه خط لوله پژوهشیار ---")
+    
+    # ۱. راه‌اندازی دیتابیس در حافظه
+    Session = init_db("sqlite:///:memory:")
+    session = Session()
+    
+    # ۲. ساخت داده نمونه پروپوزال
+    sample_proposal = {
+        "title": "سامانه تشخیص عیوب ورق فولاد مبارکه",
+        "cost_p10": 8000.0, "cost_p50": 10000.0, "cost_p90": 14000.0,
+        "benefit_p10": 3000.0, "benefit_p50": 5000.0, "benefit_p90": 8000.0,
+        "p_success": 0.85
+    }
+
+    # ۳. راه‌اندازی عامل پیشینی با هوش مصنوعی آفلاین
+    llm = LLMFactory.get_provider("mock")
+    agent = ExAnteAgent(llm_provider=llm)
+
+    # ۴. ارزیابی پروپوزال
+    result = agent.evaluate_proposal(sample_proposal)
+    
+    print(f"📌 عنوان پروپوزال: {result['proposal_title']}")
+    print(f"📊 میانگین ROI: {result['quantitative_metrics']['mean_roi']}%")
+    print(f"🛡️ شاخص VaR 95%: {result['quantitative_metrics']['var_95']}%")
+    print(f"📉 احتمال زیان: {result['quantitative_metrics']['probability_of_loss']}%")
+    print(f"🏷️ وضعیت سطح اطمینان: {result['confidence_level_status']}")
+    print("--- ✅ تست خط لوله با موفقیت کامل انجام شد ---")
+
+if __name__ == "__main__":
+    run_pipeline_test()
+
+--- FILE: .\scripts\__init__.py ---
+
+
+--- FILE: .\tests\test_agents.py ---
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.llm_provider import LLMFactory
+from agents.main_agents.ex_ante_agent import ExAnteAgent
+
+def test_ex_ante_with_rag():
+    llm = LLMFactory.get_provider("mock")
+    agent = ExAnteAgent(llm_provider=llm)
+
+    sample_proposal = {
+        "title": "سامانه تشخیص عیوب ورق فولاد مبارکه",
+        "cost_p10": 8000.0, "cost_p50": 10000.0, "cost_p90": 14000.0,
+        "benefit_p10": 3000.0, "benefit_p50": 5000.0, "benefit_p90": 8000.0,
+        "p_success": 0.85
+    }
+
+    sample_text = "ریسک اصلی پروژه تامین تجهیزات سخت‌افزاری و دوربین‌های سرعت بالا است."
+
+    result = agent.evaluate_proposal(sample_proposal, raw_text=sample_text)
+
+    assert "quantitative_metrics" in result
+    assert len(result["rag_evidence"]) > 0
+
+    print("\n✅ [تست یکپارچه‌سازی عامل پیشینی با RAG محلی با موفقیت انجام شد]")
+    print(f"📌 شواهد متنی بازیابی شده: {result['rag_evidence'][0]['text']}")
+
+if __name__ == "__main__":
+    test_ex_ante_with_rag()
+
+--- FILE: .\tests\test_carbon_tax.py ---
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.carbon_tax_engine import CarbonTaxEngine
+
+def test_tax_simulations():
+    engine = CarbonTaxEngine(num_simulations=5000)
+    
+    # ۱. تست محاسبات بر مبنای قوانین اروپا
+    eu_res = engine.simulate_eu_cbam_benefit(
+        annual_export_tons_triplet=(100000.0, 200000.0, 300000.0),
+        co2_reduction_per_ton_kg=150.0,
+        carbon_tax_per_ton_usd_triplet=(60.0, 85.0, 120.0),
+        usd_to_toman_rate=65000.0,
+        years=3
+    )
+    assert eu_res["mean_annual_carbon_savings_usd"] > 0
+    print("\n✅ [تست معافیت کربن اروپا (CBAM) با موفقیت انجام شد]")
+    print(f"صرفه‌جویی سالانه اروپا: {eu_res['mean_annual_carbon_savings_usd']:,.0f} دلار")
+
+    # ۲. تست محاسبات بر مبنای قوانین ایران
+    iran_res = engine.simulate_iran_tax_credit(
+        rd_cost_triplet=(8000.0, 10000.0, 14000.0),
+        approved_cost_pct_triplet=(0.60, 0.80, 0.95),
+        corporate_tax_rate=0.20
+    )
+    assert iran_res["mean_iran_tax_credit_savings"] > 0
+    print("✅ [تست اعتبار مالیاتی قانون جهش تولید ایران با موفقیت انجام شد]")
+    print(f"میانگین تخفیف مالیاتی در ایران: {iran_res['mean_iran_tax_credit_savings']:,.0f} میلیون تومان")
+
+if __name__ == "__main__":
+    test_tax_simulations()
+
+--- FILE: .\tests\test_database.py ---
+import sys
+from pathlib import Path
+
+# افزودن مسیر ریشه پروژه به پایتون
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.database import init_db, Proposal, Milestone
+
+def test_database_creation():
+    """تست ساخت دیتابیس در حافظه و ثبت یک پروپوزال فرضی"""
+    # ساخت دیتابیس حافظه‌ای موقت (in-memory)
+    Session = init_db("sqlite:///:memory:")
+    session = Session()
+
+    # ایجاد یک نمونه پروپوزال
+    sample_proposal = Proposal(
+        title="سامانه تشخیص عیوب ورق",
+        cost_p10=8000.0, cost_p50=10000.0, cost_p90=14000.0,
+        benefit_p10=3000.0, benefit_p50=5000.0, benefit_p90=8000.0,
+        p_success=0.85
+    )
+    
+    session.add(sample_proposal)
+    session.commit()
+
+    # استعلام داده از دیتابیس
+    retrieved = session.query(Proposal).filter_by(title="سامانه تشخیص عیوب ورق").first()
+    
+    assert retrieved is not None
+    assert retrieved.p_success == 0.85
+    print("\n✅ [تست دیتابیس با موفقیت انجام شد]")
+    print(f"📦 عنوان ثبت شده در دیتابیس: {retrieved.title}")
+
+if __name__ == "__main__":
+    test_database_creation()
+
+--- FILE: .\tests\test_energy_simulation.py ---
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.energy_simulation import EnergyRiskEngine
+
+def test_energy_simulation():
+    engine = EnergyRiskEngine(num_simulations=5000)
+    
+    # تست با فرض ۱۰ الی ۳۰ روز قطعی برق و ۱۵ الی ۴۵ روز قطعی گاز
+    results = engine.simulate_energy_impact(
+        base_annual_benefit=5000.0,
+        power_outage_days_triplet=(10.0, 20.0, 35.0),
+        gas_outage_days_triplet=(15.0, 30.0, 45.0),
+        daily_downtime_loss=50.0,  # روزی ۵۰ میلیون تومان
+        years=3
+    )
+    
+    assert "mean_outage_days_yearly" in results
+    assert results["mean_outage_days_yearly"] > 0
+    assert results["mean_annual_loss_toman"] > 0
+    print("\n✅ [تست موتور شبیه‌سازی انرژی با موفقیت انجام شد]")
+    print(f"میانگین روزهای قطعی سالانه: {results['mean_outage_days_yearly']} روز")
+    print(f"میانگین خسارت سالانه انرژی: {results['mean_annual_loss_toman']:,.0f} میلیون تومان")
+
+if __name__ == "__main__":
+    test_energy_simulation()
+
+--- FILE: .\tests\test_integration.py ---
+import sys
+from pathlib import Path
+
+# افزودن مسیر ریشه پروژه به پایتون
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.llm_provider import LLMFactory
+from core.database import init_db, save_proposal_evaluation, get_all_proposals, delete_proposal_by_id
+from core.reporter import EvaluationReporter
+from agents.main_agents.ex_ante_agent import ExAnteAgent
+
+def test_full_pipeline():
+    """
+    تست جامع زنجیره کامل ارزیابی پروپوزال (از ورودی تا دیتابیس و گزارش)
+    """
+    # ۱. راه‌اندازی دیتابیس در حافظه موقت جهت تست
+    Session = init_db("sqlite:///:memory:")
+    session = Session()
+
+    # ۲. راه‌اندازی LLM و عامل ارزیابی
+    llm = LLMFactory.get_provider("mock")
+    agent = ExAnteAgent(llm_provider=llm)
+
+    # ۳. تعریف داده‌های نمونه پروپوزال
+    proposal_data = {
+        "title": "پروژه تست یکپارچه‌سازی سامانه",
+        "cost_p10": 5000.0, "cost_p50": 7000.0, "cost_p90": 10000.0,
+        "benefit_p10": 2000.0, "benefit_p50": 4000.0, "benefit_p90": 6000.0,
+        "p_success": 0.80
+    }
+    sample_text = "ریسک اصلی این پروژه زمان‌بندی و تامین قطعات سخت‌افزاری است."
+
+    # ۴. اجرای ارزیابی پیشینی به همراه RAG
+    result = agent.evaluate_proposal(proposal_data, raw_text=sample_text)
+    assert "quantitative_metrics" in result
+    assert len(result["rag_evidence"]) > 0
+
+    # ۵. ذخیره نتایج در پایگاه داده
+    saved_proposal = save_proposal_evaluation(session, proposal_data, result)
+    assert saved_proposal.id is not None
+
+    # ۶. استعلام تاریخچه از دیتابیس
+    all_proposals = get_all_proposals(session)
+    assert len(all_proposals) == 1
+
+    # ۷. تولید گزارش متنی
+    report = EvaluationReporter.generate_ex_ante_report(proposal_data, result)
+    assert "پروژه تست یکپارچه‌سازی سامانه" in report
+
+    # ۸. تست حذف از دیتابیس
+    delete_success = delete_proposal_by_id(session, saved_proposal.id)
+    assert delete_success is True
+    assert len(get_all_proposals(session)) == 0
+
+    print("\n✅ [تست جامع یکپارچه‌سازی تمام ماژول‌های سیستم با موفقیت انجام شد]")
+
+if __name__ == "__main__":
+    test_full_pipeline()
+
+--- FILE: .\tests\test_llm_provider.py ---
+import sys
+from pathlib import Path
+
+# افزودن مسیر ریشه پروژه به پایتون
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.llm_provider import LLMFactory
+
+def test_mock_llm_provider():
+    """تست عملکرد خروجی آفلاین هوش مصنوعی"""
+    llm = LLMFactory.get_provider("mock")
+    
+    # تست خروجی ساختاریافته JSON
+    json_response = llm.generate_json("ارزیابی ex_ante پروپوزال فولاد", "schema")
+    assert "technical_success_probability" in json_response
+    
+    # تست خروجی متنی
+    text_response = llm.generate_text("تحلیل ریسک")
+    assert "[پاسخ آفلاین]" in text_response
+    
+    print("\n✅ [تست ماژول هوش مصنوعی آفلاین با موفقیت انجام شد]")
+    print(f"📄 خروجی نمونه: {json_response['risk_summary']}")
+
+if __name__ == "__main__":
+    test_mock_llm_provider()
+
+--- FILE: .\tests\test_monte_carlo.py ---
+from core.monte_carlo import MonteCarloEngine
+
+def test_monte_carlo_with_fx_scenarios():
+    engine = MonteCarloEngine(num_simulations=5000)
+    
+    # تست سناریوی بومی‌سازی با صرفه‌جویی سالانه ۵۰ هزار دلار
+    result = engine.run_roi_simulation(
+        cost_p10_p50_p90=(8000.0, 10000.0, 14000.0),       # هزینه اولیه (میلیون تومان)
+        benefit_p10_p50_p90=(2000.0, 3000.0, 5000.0),      # منفعت ریالی سالانه (میلیون تومان)
+        inflation_p10_p50_p90=(0.35, 0.50, 0.65),          # سه‌گانه تورم ریالی
+        fx_growth_p10_p50_p90=(0.30, 0.40, 0.60),          # سه‌گانه رشد نرخ دلار
+        currency_type="USD",
+        base_fx_rate=65000.0,                              # نرخ پایه دلار به تومان
+        annual_fx_savings=50000.0,                         # صرفه‌جویی سالانه ۵۰ هزار دلار
+        p_success=0.90,
+        years=3
+    )
+    
+    print("\n--- نتایج شبیه‌سازی سناریوی ارزی و بومی‌سازی ---")
+    print(f"نوع ارز انتخابی: {result['currency_type']}")
+    print(f"میانگین بازگشت سرمایه (ROI): {result['mean_roi']}%")
+    print(f"شاخص ریسک VaR 95%: {result['var_95']}%")
+    print(f"ارزش کل صرفه‌جویی ارزی (معادل میلیون تومان): {result['expected_total_fx_savings_toman']:,.0f}")
+    
+    assert "mean_roi" in result
+    assert result["expected_total_fx_savings_toman"] > 0
+
+if __name__ == "__main__":
+    test_monte_carlo_with_fx_scenarios()
+
+--- FILE: .\tests\test_parser.py ---
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.parser import DocumentParser
+
+def test_parser_structure():
+    """
+    تست صحت ساختار ماژول پارسر اسناد
+    """
+    parser = DocumentParser("data/sample.pdf")
+    assert hasattr(parser, "extract_text")
+    assert hasattr(parser, "parse_financial_triplets")
+    print("\n✅ [تست ساختار ماژول پارسر با موفقیت انجام شد]")
+
+if __name__ == "__main__":
+    test_parser_structure()
+
+--- FILE: .\tests\test_rag.py ---
+import sys
+from pathlib import Path
+
+# افزودن مسیر ریشه پروژه به پایتون
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.rag_engine import SimpleRAGEngine
+
+def test_rag_retrieval():
+    """
+    تست نمایه‌سازی و بازیابی متون در موتور RAG محلی
+    """
+    rag = SimpleRAGEngine(chunk_size=20)
+    
+    sample_text = (
+        "پروژه سامانه تشخیص عیوب ورق فولاد مبارکه شامل دو فاز اصلی است. "
+        "فاز اول مربوط به طراحی الگوریتم پردازش تصویر و فاز دوم مربوط به پیاده‌سازی سخت‌افزار است. "
+        "ریسک اصلی پروژه تامین دوربین‌های صنعتی با سرعت بالا می‌باشد."
+    )
+    
+    # نمایه‌سازی سند نمونه
+    rag.index_document(doc_id="prop_01", text=sample_text)
+    
+    # جستجوی کلیدواژه ریسک
+    results = rag.retrieve_relevant_chunks(query="ریسک دوربین سخت‌افزار", top_k=1)
+    
+    assert len(results) > 0
+    print("\n✅ [تست موتور RAG محلی با موفقیت انجام شد]")
+    print(f"📄 تکه متن استخراج‌شده: {results[0]['text']}")
+
+if __name__ == "__main__":
+    test_rag_retrieval()
+
+--- FILE: .\tests\test_reliability_engine.py ---
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.reliability_engine import ReliabilityEngine
+
+def test_reliability_simulation():
+    engine = ReliabilityEngine(num_simulations=5000)
+    
+    # تست با فرض MTBF بین ۵۰۰ تا ۱۵۰۰ ساعت و MTTR بین ۲ تا ۱۰ ساعت
+    result = engine.simulate_downtime_risk(
+        base_annual_benefit=6000.0,
+        mtbf_hours_triplet=(500.0, 1000.0, 1500.0),
+        mttr_hours_triplet=(2.0, 4.0, 8.0),
+        hourly_downtime_loss=15.0,  # ساعتی ۱۵ میلیون تومان خسارت توقف
+        annual_operating_hours=7200.0,
+        years=3
+    )
+    
+    assert "mean_annual_failures" in result
+    assert "mean_availability_pct" in result
+    assert result["mean_availability_pct"] > 0
+    assert result["mean_annual_downtime_loss"] >= 0
+    
+    print("\n✅ [تست موتور شبیه‌سازی قابلیت اطمینان و توقفات با موفقیت انجام شد]")
+    print(f"میانگین تعداد دفعات خرابی سالانه: {result['mean_annual_failures']} بار")
+    print(f"میانگین ساعت توقف سالانه: {result['mean_downtime_hours']} ساعت")
+    print(f"درصد دسترسی‌پذیری تجهیز: {result['mean_availability_pct']}%")
+    print(f"میانگین زیان مالی توقفات: {result['mean_annual_downtime_loss']:,.0f} میلیون تومان")
+
+if __name__ == "__main__":
+    test_reliability_simulation()
+
+--- FILE: .\tests\test_supply_chain.py ---
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(str(ROOT_DIR))
+
+from core.supply_chain_engine import SupplyChainEngine
+
+def test_supply_chain_simulation():
+    engine = SupplyChainEngine(num_simulations=5000)
+    
+    # تست با فرض زمان مصوب ۹۰ روز و زمان واقعی بین ۶۰ تا ۱۸۰ روز
+    results = engine.simulate_lead_time_risk(
+        planned_lead_time_days=90.0,
+        actual_lead_time_triplet=(60.0, 110.0, 180.0),
+        daily_delay_cost=10.0,  # روزی ۱۰ میلیون تومان خسارت تأخیر
+        critical_delay_threshold=45.0
+    )
+    
+    assert "mean_delay_days" in results
+    assert "mean_delay_cost" in results
+    assert results["mean_lead_time_days"] > 0
+    
+    print("\n✅ [تست موتور شبیه‌سازی زنجیره تأمین با موفقیت انجام شد]")
+    print(f"میانگین کل زمان تحویل: {results['mean_lead_time_days']} روز")
+    print(f"میانگین روزهای تأخیر: {results['mean_delay_days']} روز")
+    print(f"میانگین خسارت مالی تأخیر: {results['mean_delay_cost']:,.0f} میلیون تومان")
+    print(f"احتمال وقوع تأخیر بحرانی: {results['prob_critical_delay_pct']}%")
+
+if __name__ == "__main__":
+    test_supply_chain_simulation()
+
+--- FILE: .\tests\__init__.py ---
+
+
+--- FILE: .\ui\state_manager.py ---
+import streamlit as st
+from typing import Any, Dict
+
+class StateManager:
+    """
+    مدیریت متمرکز وضعیت نشست (Session State) برای انتقال داده بین صفحات مختلف.
+    """
+    @staticmethod
+    def initialize_state():
+        """مقداردهی اولیه متغیرهای مورد نیاز در کل سامانه"""
+        defaults: Dict[str, Any] = {
+            "current_proposal": None,
+            "last_simulation_result": None,
+            "selected_currency": "USD"
+        }
+        for key, value in defaults.items():
+            if key not in st.session_state:
+                st.session_state[key] = value
+
+    @staticmethod
+    def get(key: str, default: Any = None) -> Any:
+        return st.session_state.get(key, default)
+
+    @staticmethod
+    def set(key: str, value: Any):
+        st.session_state[key] = value
+
+--- FILE: .\ui\__init__.py ---
+
+
+--- FILE: .\ui\views\carbon_tax_view.py ---
+import streamlit as st
+import numpy as np
+import pandas as pd
+from core.carbon_tax_engine import CarbonTaxEngine
+
+def render_carbon_tax_view():
+    """
+    نمایش صفحه تحلیل مالیاتی تفکیک‌شده بر اساس قوانین اروپا و قوانین ایران.
+    """
+    st.header("⚖️ تحلیل ریسک و معافیت‌های مالیاتی (قوانین اروپا و قوانین ایران)")
+    
+    tab_eu, tab_iran = st.tabs([
+        "🇪🇺 ۱. معافیت و عوارض کربن صادراتی (بر مبنای قوانین اروپا - CBAM)",
+        "🇮🇷 ۲. اعتبار مالیاتی تحقیق و توسعه (بر مبنای قوانین ایران - جهش تولید)"
+    ])
+
+    engine = CarbonTaxEngine(num_simulations=10000)
+
+    # ---------------------------------------------------------
+    # بخش اول: قوانین اروپا (CBAM)
+    # ---------------------------------------------------------
+    with tab_eu:
+        with st.expander("📖 **راهنمای مقررات CBAM اتحادیه اروپا (کلیک کنید)**", expanded=False):
+            st.markdown("""
+            طبق مقررات کربن اتحادیه اروپا (**CBAM**)، واردات فولاد به اروپا مشمول پرداخت مالیات به‌ازای هر تن دی‌اکسید کربن مازاد است:
+            * اجرای پروژه‌های R&D که انتشار کربن را کاهش دهند، موجب **معافیت از پرداخت این جریمه‌ها** در مبادی گمرکی صادرات می‌شود.
+            """)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("🚢 تناژ صادرات سالانه به بازارهای بین‌المللی (تن)")
+            exp_p10 = st.number_input("خوش‌بینانه (P10 - تن)", value=100000.0, step=10000.0, key="eu_exp_p10")
+            exp_p50 = st.number_input("محتمل (P50 - تن)", value=200000.0, step=10000.0, key="eu_exp_p50")
+            exp_p90 = st.number_input("بدبینانه (P90 - تن)", value=300000.0, step=10000.0, key="eu_exp_p90")
+            
+        with col2:
+            st.subheader("💵 نرخ جهانی مالیات کربن (دلار / تن $CO_2$)")
+            tax_p10 = st.number_input("خوش‌بینانه (P10 - دلار)", value=60.0, step=5.0, key="eu_tax_p10")
+            tax_p50 = st.number_input("محتمل (P50 - دلار)", value=85.0, step=5.0, key="eu_tax_p50")
+            tax_p90 = st.number_input("بدبینانه (P90 - دلار)", value=120.0, step=5.0, key="eu_tax_p90")
+
+        f_col1, f_col2, f_col3 = st.columns(3)
+        with f_col1:
+            co2_kg = st.number_input("کاهش $CO_2$ به ازای هر تن فولاد (کیلوگرم):", value=150.0, step=10.0, key="eu_co2")
+        with f_col2:
+            usd_rate = st.number_input("نرخ دلار به تومان:", value=65000.0, step=500.0, key="eu_usd")
+        with f_col3:
+            years_eu = st.slider("دوره ارزیابی صادرات (سال):", 1, 5, 3, key="eu_years")
+
+        if st.button("🚀 محاسبه معافیت مالیاتی کربن اروپا (CBAM)"):
+            with st.spinner("در حال محاسبه معافیت‌های صادراتی اروپا..."):
+                eu_results = engine.simulate_eu_cbam_benefit(
+                    annual_export_tons_triplet=(float(exp_p10), float(exp_p50), float(exp_p90)),
+                    co2_reduction_per_ton_kg=float(co2_kg),
+                    carbon_tax_per_ton_usd_triplet=(float(tax_p10), float(tax_p50), float(tax_p90)),
+                    usd_to_toman_rate=float(usd_rate),
+                    years=int(years_eu)
+                )
+
+            st.success("✅ محاسبات معافیت کربن اروپا تکمیل شد.")
+            m1, m2, m3 = st.columns(3)
+            m1.metric("کاهش سالانه کربن", f"{eu_results['mean_annual_co2_reduced_tons']:,.0f} تن")
+            m2.metric("صرفه‌جویی سالانه ارزی", f"${eu_results['mean_annual_carbon_savings_usd']:,.0f}")
+            m3.metric("معادل ریالی سالانه", f"{eu_results['mean_annual_carbon_savings_toman']:,.0f} م.ت")
+
+            st.info(f"💡 **مجموع معافیت جریمه صادراتی در طول {years_eu} سال:** **{eu_results['total_lifetime_savings_toman']:,.0f} میلیون تومان**")
+
+    # ---------------------------------------------------------
+    # بخش دوم: قوانین ایران (قانون جهش تولید دانش‌بنیان)
+    # ---------------------------------------------------------
+    with tab_iran:
+        with st.expander("📖 **راهنمای اعتبار مالیاتی در قوانین ایران (ماده ۱۱ جهش تولید)**", expanded=False):
+            st.markdown("""
+            طبق **ماده ۱۱ قانون جهش تولید دانش‌بنیان در ایران**:
+            * معادل هزینه‌های انجام‌شده در پروژه‌های تحقیق و توسعه (R&D) مورد تأیید، به‌عنوان **اعتبار مالیاتی** منظور می‌شود.
+            * این اعتبار مستقیماً از **مالیات بر درآمد عملکرد سالانه شرکت** کسر می‌گردد.
+            """)
+
+        ir_col1, ir_col2 = st.columns(2)
+        with ir_col1:
+            st.subheader("💰 سه‌گانه کل هزینه R&D پروژه (میلیون تومان)")
+            rd_p10 = st.number_input("خوش‌بینانه (P10)", value=8000.0, step=500.0, key="ir_rd_p10")
+            rd_p50 = st.number_input("محتمل (P50)", value=10000.0, step=500.0, key="ir_rd_p50")
+            rd_p90 = st.number_input("بدبینانه (P90)", value=14000.0, step=500.0, key="ir_rd_p90")
+
+        with ir_col2:
+            st.subheader("📋 سه‌گانه درصد تایید هزینه توسط مراجع قانونی")
+            app_p10 = st.number_input("حداقل درصد تایید (P10 - درصد)", value=60.0, step=5.0, key="ir_app_p10")
+            app_p50 = st.number_input("محتمل‌ترین درصد تایید (P50 - درصد)", value=80.0, step=5.0, key="ir_app_p50")
+            app_p90 = st.number_input("حداکثر درصد تایید (P90 - درصد)", value=95.0, step=5.0, key="ir_app_p90")
+
+        st.markdown("---")
+        tax_rate_col1, tax_rate_col2 = st.columns(2)
+        with tax_rate_col1:
+            corporate_tax_pct = st.number_input("نرخ مالیات عملکرد شرکت (درصد):", value=20.0, step=1.0, help="نرخ مصوب مالیات عملکرد صنعتی در ایران.")
+
+        if st.button("🚀 محاسبه اعتبار مالیاتی پروژه در ایران"):
+            with st.spinner("در حال محاسبه اعتبار مالیاتی طبق قوانین ایران..."):
+                iran_results = engine.simulate_iran_tax_credit(
+                    rd_cost_triplet=(float(rd_p10), float(rd_p50), float(rd_p90)),
+                    approved_cost_pct_triplet=(float(app_p10)/100.0, float(app_p50)/100.0, float(app_p90)/100.0),
+                    corporate_tax_rate=float(corporate_tax_pct)/100.0
+                )
+
+            st.success("✅ محاسبات اعتبار مالیاتی طبق قوانین ایران تکمیل شد.")
+            im1, im2, im3 = st.columns(3)
+            im1.metric("میانگین هزینه R&D", f"{iran_results['mean_rd_cost_toman']:,.0f} م.ت")
+            im2.metric("هزینه مورد تایید مراجع", f"{iran_results['mean_approved_rd_cost']:,.0f} م.ت")
+            im3.metric("تخفیف در مالیات قطعی", f"{iran_results['mean_iran_tax_credit_savings']:,.0f} م.ت")
+
+            st.info(f"💡 **میزان صرفه‌جویی نقدی در پرداخت مالیات عملکرد:** **{iran_results['mean_iran_tax_credit_savings']:,.0f} میلیون تومان** از مالیات پایان سال شرکت کسر خواهد شد.")
+
+            # نمودار توزیع تخفیف مالیاتی ایران
+            st.subheader("📈 توزیع احتمالاتی تخفیف مالیاتی در ایران (میلیون تومان)")
+            raw_savings = iran_results['raw_tax_savings']
+            counts, bin_edges = np.histogram(raw_savings, bins=25)
+            labels = [f"{int(bin_edges[i]):,} م.ت" for i in range(len(counts))]
+            chart_data = pd.DataFrame({"میزان تخفیف مالیاتی": labels, "تعداد سناریوها": counts}).set_index("میزان تخفیف مالیاتی")
+            st.bar_chart(chart_data)
+
+--- FILE: .\ui\views\energy_risk_view.py ---
+import streamlit as st
+import numpy as np
+import pandas as pd
+from core.energy_simulation import EnergyRiskEngine
+
+def render_energy_risk_view():
+    """
+    نمایش صفحه تخصصی شبیه‌سازی ریسک ناترازی انرژی به همراه راهنماهای جامع.
+    """
+    st.header("⚡ شبیه‌سازی ریسک ناترازی و محدودیت حامل‌های انرژی (برق و گاز)")
+    
+    with st.expander("📖 **راهنمای شبیه‌سازی ریسک انرژی (کلیک کنید)**", expanded=False):
+        st.markdown("""
+        در صنایع انرژی‌بر، عدم قطعیت در تأمین پایدار برق و گاز مستقیماً بر تولید اثر می‌گذارد:
+        * **سناریوهای روزهای قطعی برق (تابستان):** روزهایی که خط به دلیل محدودیت دیسپاچینگ برق متوقف یا با ظرفیت کاهش‌یافته کار می‌کند.
+        * **سناریوهای روزهای قطعی گاز (زمستان):** روزهای ناترازی گاز در فصل سرد سال.
+        * **هزینه توقف روزانه:** برآورد ارزش تولید از دست رفته یا هزینه‌های ثابت بر زمین مانده به‌ازای هر روز توقف.
+        """)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("☀️ سناریوی ناترازی برق تابستان (روز)")
+        power_p10 = st.number_input("خوش‌بینانه (P10 - روز)", value=10.0, step=1.0)
+        power_p50 = st.number_input("محتمل (P50 - روز)", value=20.0, step=1.0)
+        power_p90 = st.number_input("بدبینانه (P90 - روز)", value=35.0, step=1.0)
+        
+    with col2:
+        st.subheader("❄️ سناریوی ناترازی گاز زمستان (روز)")
+        gas_p10 = st.number_input("خوش‌بینانه (P10 - روز)", value=15.0, step=1.0)
+        gas_p50 = st.number_input("محتمل (P50 - روز)", value=30.0, step=1.0)
+        gas_p90 = st.number_input("بدبینانه (P90 - روز)", value=45.0, step=1.0)
+
+    st.markdown("---")
+    st.subheader("💰 ابعاد مالی و زیان توقف خط")
+    
+    f_col1, f_col2 = st.columns(2)
+    with f_col1:
+        base_benefit = st.number_input("منفعت سالانه پیش‌بینی‌شده پروژه (میلیون تومان):", value=5000.0, step=500.0)
+    with f_col2:
+        daily_loss = st.number_input("زیان روزانه توقف فرآیند ناشی از انرژی (میلیون تومان):", value=50.0, step=5.0)
+
+    years = st.slider("دوره ارزیابی (سال):", 1, 5, 3)
+
+    if st.button("🚀 اجرای شبیه‌سازی مونت‌کارلو ناترازی انرژی"):
+        engine = EnergyRiskEngine(num_simulations=10000)
+        
+        with st.spinner("در حال شبیه‌سازی اثرات ناترازی انرژی..."):
+            results = engine.simulate_energy_impact(
+                base_annual_benefit=float(base_benefit),
+                power_outage_days_triplet=(float(power_p10), float(power_p50), float(power_p90)),
+                gas_outage_days_triplet=(float(gas_p10), float(gas_p50), float(gas_p90)),
+                daily_downtime_loss=float(daily_loss),
+                years=int(years)
+            )
+
+        st.success("✅ محاسبات شبیه‌سازی ریسک انرژی تکمیل شد.")
+        
+        # نمایش کارت‌های شاخص
+        m1, m2, m3 = st.columns(3)
+        m1.metric("میانگین روزهای قطعی سالانه", f"{results['mean_outage_days_yearly']} روز")
+        m2.metric("خسارت سالانه پیش‌بینی‌شده", f"{results['mean_annual_loss_toman']:,.0f} م.ت")
+        m3.metric("منفعت خالص تعدیل‌شده سالانه", f"{results['adjusted_annual_benefit']:,.0f} م.ت")
+
+        # نمودار توزیع خسارت
+        st.subheader("📈 توزیع احتمالاتی خسارت سالانه انرژی (میلیون تومان)")
+        raw_losses = results['raw_loss_samples']
+        counts, bin_edges = np.histogram(raw_losses, bins=25)
+        labels = [f"{int(bin_edges[i]):,} م.ت" for i in range(len(counts))]
+        
+        chart_data = pd.DataFrame({"میزان خسارت": labels, "تعداد سناریوها": counts}).set_index("میزان خسارت")
+        st.bar_chart(chart_data)
+
+--- FILE: .\ui\views\ex_ante_view.py ---
+import streamlit as st
+import numpy as np
+import pandas as pd
+from pathlib import Path
+
+from core.parser import DocumentParser
+from core.database import save_proposal_evaluation
+from core.reporter import EvaluationReporter
+from agents.main_agents.ex_ante_agent import ExAnteAgent
+
+def render_ex_ante_view(llm_provider, db_session_factory):
+    """
+    نمایش صفحه ارزیابی پیشینی با راهنماهای تحلیلی کامل و شفاف.
+    """
+    st.header("📋 ارزیابی پیشینی پروپوزال (تحلیل ریسک، تورم و ارز)")
+    
+    with st.expander("📖 **راهنمای جامع این بخش (کلیک کنید)**", expanded=False):
+        st.markdown("""
+        این بخش به شما کمک می‌کند تا پیش از تصویب و شروع پروژه R&D، ابعاد مالی و ریسک‌های آن را در شرایط واقعی بسنجید:
+        * **تخمین‌های سه‌گانه (PERT):** به‌جای یک عدد قطعی، هزینه‌ها و منافع را در ۳ سناریوی *خوش‌بینانه (P10)*، *محتمل (P50)* و *بدبینانه (P90)* وارد کنید.
+        * **سه‌گانه تورم ریالی:** اثر نرخ تورم ساختاری سالانه بر جریان‌های نقدی اسمی و نرخ تنزیل بر اساس رابطه فیشر محاسبه می‌شود.
+        * **صرفه‌جویی ارزی:** اگر پروژه منجر به بومی‌سازی قطعه یا دانشی شود، میزان ارز ذخیره‌شده بر اساس سناریوی رشد قیمت ارز انتخابی (دلار/یورو/یوان) محاسبه و به منافع اضافه می‌گردد.
+        """)
+
+    st.subheader("📁 ۱. بارگذاری سند پروپوزال (PDF)")
+    uploaded_file = st.file_uploader("فایل پروپوزال را انتخاب کنید", type=["pdf"])
+    
+    parsed_defaults = {
+        "cost_p10": 8000.0, "cost_p50": 10000.0, "cost_p90": 14000.0,
+        "benefit_p10": 3000.0, "benefit_p50": 5000.0, "benefit_p90": 8000.0,
+        "p_success": 0.85
+    }
+    extracted_pdf_text = ""
+
+    if uploaded_file is not None:
+        temp_path = Path("data") / uploaded_file.name
+        temp_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(temp_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        try:
+            parser = DocumentParser(str(temp_path))
+            parsed_defaults = parser.parse_financial_triplets()
+            extracted_pdf_text = parser.extract_text()
+            st.success(f"✅ فایل '{uploaded_file.name}' با موفقیت پردازش شد.")
+        except Exception as e:
+            st.error(f"خطا در پردازش فایل: {e}")
+
+    st.markdown("---")
+    title = st.text_input("عنوان پروپوزال", "سامانه بومی‌سازی و کنترل کیفی هوشمند")
+    
+    tab_financial, tab_inflation, tab_currency = st.tabs([
+        "💰 پارامترهای پایه مالی و فنی", 
+        "📈 سه‌گانه تورم ریالی", 
+        "🌐 سناریوهای ارزی و بومی‌سازی"
+    ])
+    
+    with tab_financial:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**تخمین هزینه اولیه پروژه (میلیون تومان):**")
+            cost_p10 = st.number_input("هزینه خوش‌بینانه (P10)", value=float(parsed_defaults["cost_p10"]), step=500.0)
+            cost_p50 = st.number_input("هزینه محتمل (P50)", value=float(parsed_defaults["cost_p50"]), step=500.0)
+            cost_p90 = st.number_input("هزینه بدبینانه (P90)", value=float(parsed_defaults["cost_p90"]), step=500.0)
+            
+        with col2:
+            st.markdown("**تخمین منافع ریالی سالانه (میلیون تومان):**")
+            benefit_p10 = st.number_input("منافع خوش‌بینانه (P10)", value=float(parsed_defaults["benefit_p10"]), step=500.0)
+            benefit_p50 = st.number_input("منافع محتمل (P50)", value=float(parsed_defaults["benefit_p50"]), step=500.0)
+            benefit_p90 = st.number_input("منافع بدبینانه (P90)", value=float(parsed_defaults["benefit_p90"]), step=500.0)
+            
+        p_success = st.slider("احتمال موفقیت فنی پروژه", 0.0, 1.0, float(parsed_defaults["p_success"]), step=0.05)
+        project_years = st.slider("افق زمانی بهره‌برداری (سال)", 1, 10, 3)
+
+    with tab_inflation:
+        st.info("💡 **راهنمای تورم:** نرخ تورم سالانه را بر حسب شرایط کلان اقتصادی تعیین کنید تا اثر آن در تنزیل ارزش آتی لحاظ شود.")
+        inf_col1, inf_col2, inf_col3 = st.columns(3)
+        with inf_col1:
+            inf_p10 = st.number_input("حداقل تورم سالانه (P10 - درصد)", value=35.0, step=5.0)
+        with inf_col2:
+            inf_p50 = st.number_input("محتمل‌ترین تورم سالانه (P50 - درصد)", value=50.0, step=5.0)
+        with inf_col3:
+            inf_p90 = st.number_input("حداکثر تورم سالانه (P90 - درصد)", value=70.0, step=5.0)
+
+    with tab_currency:
+        st.info("💡 **راهنمای ارزی:** ارز مرجع قطعه وارداتی را انتخاب و سه‌گانه رشد سالانه قیمت آن را مشخص کنید.")
+        cur_col1, cur_col2 = st.columns(2)
+        
+        with cur_col1:
+            currency_choice = st.selectbox("نوع ارز مبنا:", ["دلار آمریکا (USD)", "یورو (EUR)", "یوان چین (CNY)"])
+            currency_mapping = {
+                "دلار آمریکا (USD)": ("USD", 65000.0),
+                "یورو (EUR)": ("EUR", 70000.0),
+                "یوان چین (CNY)": ("CNY", 9000.0)
+            }
+            currency_code, default_rate = currency_mapping[currency_choice]
+            base_fx_rate = st.number_input(f"نرخ فعلی {currency_choice} به تومان:", value=default_rate, step=500.0)
+
+        with cur_col2:
+            annual_fx_savings = st.number_input(
+                f"صرفه‌جویی ارزی سالانه ({currency_code}):",
+                value=50000.0,
+                step=5000.0,
+                help="میزان ارزی که سالانه از خروج آن با بومی‌سازی جلوگیری می‌شود."
+            )
+
+        st.markdown("**سه‌گانه درصد رشد سالانه قیمت ارز:**")
+        fx_g_col1, fx_g_col2, fx_g_col3 = st.columns(3)
+        with fx_g_col1:
+            fx_p10 = st.number_input(f"حداقل رشد نرخ {currency_code} (P10 - درصد)", value=30.0, step=5.0)
+        with fx_g_col2:
+            fx_p50 = st.number_input(f"محتمل‌ترین رشد نرخ {currency_code} (P50 - درصد)", value=45.0, step=5.0)
+        with fx_g_col3:
+            fx_p90 = st.number_input(f"حداکثر رشد نرخ {currency_code} (P90 - درصد)", value=65.0, step=5.0)
+
+    st.markdown("---")
+    
+    if st.button("🚀 اجرای شبیه‌سازی مونت‌کارلو و ارزیابی جامع ریسک"):
+        agent = ExAnteAgent(llm_provider=llm_provider)
+        
+        proposal_data = {
+            "title": title,
+            "cost_p10": float(cost_p10), "cost_p50": float(cost_p50), "cost_p90": float(cost_p90),
+            "benefit_p10": float(benefit_p10), "benefit_p50": float(benefit_p50), "benefit_p90": float(benefit_p90),
+            "inflation_p10": float(inf_p10) / 100.0,
+            "inflation_p50": float(inf_p50) / 100.0,
+            "inflation_p90": float(inf_p90) / 100.0,
+            "currency_type": currency_code,
+            "base_fx_rate": float(base_fx_rate),
+            "annual_fx_savings": float(annual_fx_savings),
+            "fx_growth_p10": float(fx_p10) / 100.0,
+            "fx_growth_p50": float(fx_p50) / 100.0,
+            "fx_growth_p90": float(fx_p90) / 100.0,
+            "p_success": float(p_success),
+            "real_discount_rate": 0.10,
+            "years": int(project_years)
+        }
+        
+        with st.spinner("در حال اجرای ۱۰,۰۰۰ سناریوی شبیه‌سازی با احتساب تورم و ارز..."):
+            result = agent.evaluate_proposal(proposal_data, raw_text=extracted_pdf_text)
+            
+            try:
+                db_session = db_session_factory()
+                save_proposal_evaluation(db_session, proposal_data, result)
+                db_session.close()
+                st.success("✅ نتایج ارزیابی با موفقیت در پایگاه داده ثبت شد.")
+            except Exception as e:
+                st.warning(f"خطا در ثبت دیتابیس: {e}")
+
+        # کارت‌های خروجی
+        metrics = result.get('quantitative_metrics', {})
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("میانگین بازگشت سرمایه (ROI)", f"{metrics.get('mean_roi', 0.0)}%")
+        m2.metric("شاخص ریسک VaR 95%", f"{metrics.get('var_95', 0.0)}%")
+        m3.metric("احتمال زیان کل", f"{metrics.get('probability_of_loss', 0.0)}%")
+        
+        fx_savings_val = metrics.get('expected_total_fx_savings_toman', 0.0)
+        m4.metric(f"ارزش صرفه‌جویی ارزی ({currency_code})", f"{fx_savings_val:,.0f} م.ت")
+
+        # نمودار توزیع بازگشت سرمایه
+        raw_samples = metrics.get('raw_roi_samples', np.array([]))
+        if len(raw_samples) > 0:
+            st.subheader("📈 نمودار توزیع احتمالاتی بازگشت سرمایه (ROI Distribution)")
+            counts, bin_edges = np.histogram(raw_samples, bins=30)
+            bin_labels = [f"{int(bin_edges[i])}%" for i in range(len(counts))]
+            chart_data = pd.DataFrame({"بازه بازگشت سرمایه": bin_labels, "تعداد سناریوها": counts}).set_index("بازه بازگشت سرمایه")
+            st.bar_chart(chart_data)
+
+        # دانلود گزارش
+        report_text = EvaluationReporter.generate_ex_ante_report(proposal_data, result)
+        st.download_button("📥 دانلود گزارش ارزیابی (TXT)", data=report_text, file_name=f"Report_{title}.txt", mime="text/plain")
+
+--- FILE: .\ui\views\ex_post_view.py ---
+import streamlit as st
+from agents.main_agents.ex_post_agent import ExPostAgent
+
+def render_ex_post_view(llm_provider):
+    """
+    نمایش صفحه ارزیابی پسینی و گواهی ارزش‌آفرینی به همراه متون راهنما.
+    """
+    st.header("🎯 ارزیابی پسینی و صدور گواهی ارزش‌آفرینی")
+    
+    with st.expander("📖 **راهنمای ارزیابی پسینی (کلیک کنید)**", expanded=False):
+        st.markdown("""
+        پس از اتمام کامل پروژه R&D و ورود به فاز بهره‌برداری، دستاورد واقعی با هزینه‌های نهایی مقایسه می‌شود:
+        * **ارزش خالص ایجادشده (Net Value):** تفاضل منافع محقق‌شده از کل هزینه صرف‌شده.
+        * **بازگشت سرمایه واقعی (Realized ROI):** نرخ سودآوری قطعی حاصل از اجرای پروژه.
+        """)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        actual_cost = st.number_input("کل هزینه واقعی صرف‌شده (میلیون تومان)", value=10000.0, step=500.0)
+    with col2:
+        realized_benefit = st.number_input("کل منافع مالی محقق‌شده (میلیون تومان)", value=15000.0, step=500.0)
+
+    if st.button("محاسبه ارزش‌آفرینی نهایی"):
+        agent = ExPostAgent(llm_provider=llm_provider)
+        res = agent.evaluate_ex_post(actual_cost=actual_cost, realized_benefit=realized_benefit)
+        
+        m1, m2, m3 = st.columns(3)
+        m1.metric("ارزش خالص ایجادشده", f"{res.get('net_value', 0.0)} میلیون تومان")
+        m2.metric("بازگشت سرمایه واقعی (ROI)", f"{res.get('realized_roi', 0.0)}%")
+        m3.metric("وضعیت گواهی", res.get('value_certificate_status', 'PENDING'))
+
+--- FILE: .\ui\views\history_view.py ---
+import streamlit as st
+import pandas as pd
+from core.database import get_all_proposals, delete_proposal_by_id
+
+def render_history_view(db_session_factory):
+    """
+    نمایش تاریخچه پروپوزال‌ها و مدیریت داده‌ها همراه با راهنما.
+    """
+    st.header("📜 تاریخچه پروپوزال‌ها و ارزیابی‌های قبلی")
+    
+    with st.expander("📖 **راهنمای مدیریت سوابق (کلیک کنید)**", expanded=False):
+        st.markdown("""
+        در این جدول تمامی ارزیابی‌های پیشینی ثبت‌شده ذخیره شده‌اند. شما می‌توانید شاخص‌های کلیدی پروژه‌های مختلف را مقایسه کنید یا رکوردهای قدیمی را حذف نمایید.
+        """)
+
+    db_session = db_session_factory()
+    try:
+        proposals = get_all_proposals(db_session)
+        if not proposals:
+            st.info("هنوز هیچ پروپوزالی در پایگاه داده ثبت نشده است.")
+        else:
+            table_data = []
+            for prop in proposals:
+                table_data.append({
+                    "شناسه": prop.id,
+                    "عنوان پروپوزال": prop.title,
+                    "هزینه محتمل (P50)": f"{getattr(prop, 'cost_p50', 0):,.0f} م.ت",
+                    "منافع محتمل (P50)": f"{getattr(prop, 'benefit_p50', 0):,.0f} م.ت",
+                    "احتمال موفقیت": f"{int(getattr(prop, 'p_success', 0) * 100)}%",
+                    "میانگین ROI": f"{prop.mean_roi}%" if prop.mean_roi is not None else "-",
+                    "شاخص VaR 95%": f"{prop.var_95}%" if prop.var_95 is not None else "-",
+                    "وضعیت ریسک": getattr(prop, 'risk_status', "-") or "-",
+                    "تاریخ ثبت": prop.created_at.strftime("%Y-%m-%d %H:%M") if getattr(prop, 'created_at', None) else "-"
+                })
+            
+            st.dataframe(pd.DataFrame(table_data), use_container_width=True)
+
+            st.markdown("---")
+            st.subheader("🗑️ حذف رکورد")
+            col_del1, col_del2 = st.columns([2, 1])
+            with col_del1:
+                delete_id = st.number_input("شناسه پروپوزال جهت حذف:", min_value=1, step=1)
+            with col_del2:
+                st.write("")
+                st.write("")
+                if st.button("حذف پروپوزال"):
+                    if delete_proposal_by_id(db_session, delete_id):
+                        st.success(f"پروپوزال شماره {delete_id} با موفقیت حذف شد.")
+                        st.rerun()
+                    else:
+                        st.error(f"پروپوزال شماره {delete_id} یافت نشد.")
+    finally:
+        db_session.close()
+
+--- FILE: .\ui\views\process_view.py ---
+import streamlit as st
+from agents.main_agents.process_agent import ProcessAgent
+
+def render_process_view(llm_provider):
+    """
+    نمایش صفحه پایش فرآیندی و سنجش انحراف مایلستون‌ها همراه با راهنما.
+    """
+    st.header("📊 پایش فرآیندی و ردیابی انحرافات مایلستون‌ها")
+    
+    with st.expander("📖 **راهنمای پایش فرآیندی (کلیک کنید)**", expanded=False):
+        st.markdown("""
+        این بخش برای ارزیابی عملکرد واقعی در حین اجرای پروژه است:
+        * **انحراف هزینه (Cost Variance):** تفاوت بودجه مصوب فاز جاری با هزینه واقعی مصرف‌شده.
+        * **انحراف زمان (Schedule Variance):** تفاوت زمان مصوب با زمان واقعی صرف‌شده.
+        * **سطح هشدار:** سیستم به‌صورت خودکار بر اساس آستانه‌های انحراف وضعیت را در یکی از سطوح *عادی (ON_TRACK)*، *هشدار (WARNING)* یا *بحرانی (CRITICAL)* قرار می‌دهد.
+        """)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("بودجه مایلستون (میلیون تومان)")
+        planned_budget = st.number_input("بودجه مصوب (برنامه‌ریزی‌شده)", value=1000.0, step=100.0)
+        actual_budget = st.number_input("بودجه مصرف‌شده (واقعی)", value=1200.0, step=100.0)
+        
+    with col2:
+        st.subheader("زمان‌بندی مایلستون (روز)")
+        planned_days = st.number_input("زمان مصوب (برنامه‌ریزی‌شده)", value=30, step=5)
+        actual_days = st.number_input("زمان صرف‌شده (واقعی)", value=38, step=5)
+
+    if st.button("تحلیل انحرافات و وضعیت مایلستون"):
+        agent = ProcessAgent(llm_provider=llm_provider)
+        milestones = [{
+            "title": "فاز جاری",
+            "planned_budget": planned_budget,
+            "actual_budget": actual_budget,
+            "planned_duration_days": planned_days,
+            "actual_duration_days": actual_days
+        }]
+        res = agent.monitor_process(milestones)
+        
+        m1, m2, m3 = st.columns(3)
+        m1.metric("انحراف هزینه", f"{res.get('cost_variance_pct', 0.0)}%")
+        m2.metric("انحراف زمان", f"{res.get('schedule_variance_pct', 0.0)}%")
+        m3.metric("وضعیت هشدار", res.get('status', 'NORMAL'))
+        st.info(f"💡 **توصیه سیستم:** {res.get('mitigation_advice', 'اقدامی ثبت نشده است.')}")
+
+--- FILE: .\ui\views\reliability_view.py ---
+import streamlit as st
+import numpy as np
+import pandas as pd
+from core.reliability_engine import ReliabilityEngine
+
+def render_reliability_view():
+    """
+    نمایش صفحه شبیه‌سازی قابلیت اطمینان و توقفات خط تولید با راهنماهای تحلیلی.
+    """
+    st.header("⚙️ شبیه‌سازی قابلیت اطمینان تجهیزات و ریسک توقف خط تولید (MTBF / Downtime)")
+    
+    with st.expander("📖 **راهنمای شبیه‌سازی قابلیت اطمینان (کلیک کنید)**", expanded=False):
+        st.markdown("""
+        این بخش برای ارزیابی ریسک‌های عملیاتی ناشی از نقص فنی تجهیزات جدید در خط تولید است:
+        * **شاخص MTBF (فاصله زمانی بین خرابی‌ها):** میانگین ساعت کارکرد پایدار تجهیز قبل از بروز اشکال بعدی (هرچه بیشتر باشد، بهتر است).
+        * **شاخص MTTR (زمان لازم برای تعمیر):** میانگین ساعتی که تیم نگهداری و تعمیرات برای رفع خرابی نیاز دارد.
+        * **ضریب در دسترس بودن (Availability):** درصدی از زمان مفید کاری سالانه که خط بدون توقف ناشی از این تجهیز به کار خود ادامه می‌دهد.
+        * **زیان توقف ساعتی:** ارزش اقتصادی عدم تولید به ازای هر ساعت توقف کامل خط.
+        """)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("⏱️ تخمین MTBF (فاصله بین خرابی‌ها - ساعت)")
+        mtbf_p10 = st.number_input("خوش‌بینانه (P10 - ساعت)", value=1500.0, step=100.0, help="حداکثر کارکرد مداوم بدون خرابی")
+        mtbf_p50 = st.number_input("محتمل (P50 - ساعت)", value=1000.0, step=100.0)
+        mtbf_p90 = st.number_input("بدبینانه (P90 - ساعت)", value=500.0, step=100.0, help="حداقل کارکرد بدون خرابی")
+        
+    with col2:
+        st.subheader("🛠️ تخمین MTTR (زمان تعمیر - ساعت)")
+        mttr_p10 = st.number_input("خوش‌بینانه (P10 - ساعت)", value=2.0, step=0.5, help="سریع‌ترین زمان تعمیر")
+        mttr_p50 = st.number_input("محتمل (P50 - ساعت)", value=4.0, step=0.5)
+        mttr_p90 = st.number_input("بدبینانه (P90 - ساعت)", value=8.0, step=0.5, help="طولانی‌ترین زمان تعمیر")
+
+    st.markdown("---")
+    st.subheader("🏭 شرایط عملیاتی و هزینه توقف خط")
+    
+    f_col1, f_col2, f_col3 = st.columns(3)
+    with f_col1:
+        annual_hours = st.number_input("کل ساعات کاری سالانه خط (ساعت):", value=7200.0, step=200.0)
+    with f_col2:
+        hourly_loss = st.number_input("خسارت هر ساعت توقف خط (میلیون تومان):", value=20.0, step=2.0)
+    with f_col3:
+        base_benefit = st.number_input("منفعت سالانه پیش‌بینی‌شده پروژه (میلیون تومان):", value=6000.0, step=500.0)
+
+    years = st.slider("افق زمانی بررسی (سال):", 1, 5, 3)
+
+    if st.button("🚀 اجرای شبیه‌سازی قابلیت اطمینان و توقفات"):
+        engine = ReliabilityEngine(num_simulations=10000)
+        
+        with st.spinner("در حال شبیه‌سازی نرخ خرابی و اثر توقف بر خط تولید..."):
+            results = engine.simulate_downtime_risk(
+                base_annual_benefit=float(base_benefit),
+                mtbf_hours_triplet=(float(mtbf_p10), float(mtbf_p50), float(mtbf_p90)),
+                mttr_hours_triplet=(float(mttr_p10), float(mttr_p50), float(mttr_p90)),
+                hourly_downtime_loss=float(hourly_loss),
+                annual_operating_hours=float(annual_hours),
+                years=int(years)
+            )
+
+        st.success("✅ شبیه‌سازی قابلیت اطمینان با موفقیت محاسبه شد.")
+        
+        # نمایش کارت‌های متریک
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("دفعات خرابی سالانه", f"{results['mean_annual_failures']} بار")
+        m2.metric("کل ساعت توقف سالانه", f"{results['mean_downtime_hours']} ساعت")
+        m3.metric("درصد دسترسی‌پذیری تجهیز", f"{results['mean_availability_pct']}%")
+        m4.metric("زیان مالی توقف سالانه", f"{results['mean_annual_downtime_loss']:,.0f} م.ت")
+
+        st.info(f"💡 **منفعت سالانه تعدیل‌شده پروژه پس از کسر خسارت توقفات:** **{results['adjusted_annual_benefit']:,.0f} میلیون تومان**")
+
+        # نمودار توزیع احتمال ساعات توقف
+        st.subheader("📈 توزیع احتمالاتی ساعات توقف سالانه خط")
+        raw_downtime = results['raw_downtime_hours']
+        counts, bin_edges = np.histogram(raw_downtime, bins=25)
+        labels = [f"{int(bin_edges[i])} ساعت" for i in range(len(counts))]
+        
+        chart_data = pd.DataFrame({"ساعات توقف": labels, "تعداد سناریوها": counts}).set_index("ساعات توقف")
+        st.bar_chart(chart_data)
+
+--- FILE: .\ui\views\supply_chain_view.py ---
+import streamlit as st
+import numpy as np
+import pandas as pd
+from core.supply_chain_engine import SupplyChainEngine
+
+def render_supply_chain_view():
+    """
+    نمایش صفحه شبیه‌سازی تأخیرات زنجیره تأمین همراه با راهنماهای شفاف و تحلیلی.
+    """
+    st.header("🚚 شبیه‌سازی ریسک زنجیره تأمین و تأخیر در تحویل تجهیزات (Lead-Time)")
+    
+    with st.expander("📖 **راهنمای شبیه‌سازی زنجیره تأمین (کلیک کنید)**", expanded=False):
+        st.markdown("""
+        این بخش برای ارزیابی ریسک‌های ناشی از تأخیر در تأمین قطعات حساس، مواد اولیه وارداتی و تجهیزات های‌تک است:
+        * **زمان مصوب تحویل (Planned Lead-Time):** زمان‌بندی تعهدشده در برنامه زمان‌بندی پروژه (روز).
+        * **سه‌گانه روزهای تحویل واقعی (P10/P50/P90):** حداقل، محتمل‌ترین و حداکثر زمانی که فرآیند خرید، ترخیص گمرکی و حمل طول می‌کشد.
+        * **خسارت روزانه تأخیر:** هزینه راکد ماندن نیروها یا عدم اجرای به‌موقع پروژه به ازای هر روز تأخیر.
+        * **آستانه تأخیر بحرانی:** حداکثر روزهای تأخیری که فراتر از آن، کل پروژه با ریسک شکست مواجه می‌شود.
+        """)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("📅 زمان‌بندی تحویل تجهیز (روز)")
+        planned_time = st.number_input("زمان مصوب و برنامه‌ریزی‌شده تحویل (روز):", value=90.0, step=5.0)
+        critical_threshold = st.number_input("آستانه تأخیر بحرانی (روز):", value=45.0, step=5.0, help="تأخیری که پروژه را بحرانی می‌کند.")
+
+    with col2:
+        st.subheader("⏱️ سه‌گانه پیش‌بینی زمان تحویل واقعی (روز)")
+        lead_p10 = st.number_input("خوش‌بینانه (P10 - ترخیص و حمل بسیار سریع):", value=75.0, step=5.0)
+        lead_p50 = st.number_input("محتمل (P50 - شرایط عادی بازار):", value=110.0, step=5.0)
+        lead_p90 = st.number_input("بدبینانه (P90 - چالش‌های گمرکی و تحریم):", value=180.0, step=5.0)
+
+    st.markdown("---")
+    st.subheader("💰 هزینه روزانه تأخیر")
+    daily_cost = st.number_input("خسارت یا هزینه بالاسری هر روز تأخیر (میلیون تومان):", value=12.0, step=1.0)
+
+    if st.button("🚀 اجرای شبیه‌سازی مونت‌کارلو زنجیره تأمین"):
+        engine = SupplyChainEngine(num_simulations=10000)
+        
+        with st.spinner("در حال شبیه‌سازی سناریوهای زنجیره تأمین..."):
+            results = engine.simulate_lead_time_risk(
+                planned_lead_time_days=float(planned_time),
+                actual_lead_time_triplet=(float(lead_p10), float(lead_p50), float(lead_p90)),
+                daily_delay_cost=float(daily_cost),
+                critical_delay_threshold=float(critical_threshold)
+            )
+
+        st.success("✅ شبیه‌سازی زنجیره تأمین با موفقیت انجام شد.")
+        
+        # کارت‌های نتایج
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("میانگین کل زمان تحویل", f"{results['mean_lead_time_days']} روز")
+        m2.metric("میانگین روزهای تأخیر", f"{results['mean_delay_days']} روز")
+        m3.metric("میانگین خسارت تأخیر", f"{results['mean_delay_cost']:,.0f} م.ت")
+        m4.metric("احتمال تأخیر بحرانی", f"{results['prob_critical_delay_pct']}%")
+
+        st.info(f"💡 **در بدترین سناریوها (صدک ۹۵٪):** پروژه ممکن است تا **{results['max_delay_days_p95']} روز تأخیر** و **{results['max_delay_cost_p95']:,.0f} میلیون تومان خسارت** را تجربه کند.")
+
+        # نمودار توزیع تأخیرات
+        st.subheader("📈 توزیع احتمالاتی روزهای تأخیر پروژه (روز)")
+        raw_delays = results['raw_delay_days']
+        counts, bin_edges = np.histogram(raw_delays, bins=25)
+        labels = [f"{int(bin_edges[i])} روز" for i in range(len(counts))]
+        
+        chart_data = pd.DataFrame({"روزهای تأخیر": labels, "تعداد سناریوها": counts}).set_index("روزهای تأخیر")
+        st.bar_chart(chart_data)
+
