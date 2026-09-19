@@ -5,6 +5,7 @@ Serves on port 8001 with OWASP security headers and strict CORS.
 from contextlib import asynccontextmanager
 from typing import List
 
+import numpy as np
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -105,42 +106,185 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
 
 
 # =============================================================================
-# MOCK RESPONSE GENERATORS (kept for /evaluate endpoint only)
+# REAL PROPOSAL EVALUATION ENGINE INTEGRATION
 # =============================================================================
 
-def _mock_evaluation_response(request: ProposalRequest) -> EvaluationResponse:
-    """Generate a mock EvaluationResponse from a ProposalRequest."""
+from core.llm_provider import MockLLMProvider
+
+
+def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
+    """
+    Execute real proposal evaluation using core simulation engines and LLM provider.
+
+    Maps ProposalRequest DTO fields to engine parameters, runs all risk simulations,
+    generates qualitative assessment, and aggregates results into a validated
+    EvaluationResponse.
+    """
+    # Extract triplets from ProposalRequest
+    cost_triplet = (request.cost.low, request.cost.likely, request.cost.high)
+    benefit_triplet = (request.benefit.low, request.benefit.likely, request.benefit.high)
+    inflation_triplet = (request.inflation.low, request.inflation.likely, request.inflation.high)
+    fx_growth_triplet = (request.fx_growth.low, request.fx_growth.likely, request.fx_growth.high)
+    power_outage_triplet = (request.power_outage.low, request.power_outage.likely, request.power_outage.high)
+    gas_outage_triplet = (request.gas_outage.low, request.gas_outage.likely, request.gas_outage.high)
+    mtbf_triplet = (request.mtbf.low, request.mtbf.likely, request.mtbf.high)
+    mttr_triplet = (request.mttr.low, request.mttr.likely, request.mttr.high)
+    actual_lead_time_triplet = (request.actual_lead_time.low, request.actual_lead_time.likely, request.actual_lead_time.high)
+    approved_pct_triplet = (request.approved_pct.low, request.approved_pct.likely, request.approved_pct.high)
+    export_tons_triplet = (request.export_tons.low, request.export_tons.likely, request.export_tons.high)
+    carbon_tax_usd_triplet = (request.carbon_tax_usd.low, request.carbon_tax_usd.likely, request.carbon_tax_usd.high)
+
+    years = request.years
+
+    # Instantiate engines with deterministic seed for reproducibility
+    seed = 42
+    mc_engine = MonteCarloEngine(num_simulations=10000, seed=seed)
+    energy_engine = EnergyRiskEngine(num_simulations=10000, seed=seed)
+    reliability_engine = ReliabilityEngine(num_simulations=10000, seed=seed)
+    supply_chain_engine = SupplyChainEngine(num_simulations=10000, seed=seed)
+    tax_engine = CarbonTaxEngine(num_simulations=10000, seed=seed)
+    llm_provider = MockLLMProvider()
+
+    # 1. Monte Carlo ROI simulation
+    mc_results = mc_engine.run_roi_simulation(
+        cost_p10_p50_p90=cost_triplet,
+        benefit_p10_p50_p90=benefit_triplet,
+        inflation_p10_p50_p90=inflation_triplet,
+        fx_growth_p10_p50_p90=fx_growth_triplet,
+        currency_type=request.currency_type.value,
+        base_fx_rate=request.base_fx_rate,
+        annual_fx_savings=request.annual_fx_savings,
+        p_success=request.p_success,
+        years=years,
+    )
+
+    # Compute percentiles from raw samples for quantitative metrics
+    roi_samples = mc_results.get("raw_roi_samples")
+    if roi_samples is not None:
+        roi_p10 = float(np.percentile(roi_samples, 10))
+        roi_p50 = float(np.percentile(roi_samples, 50))
+        roi_p90 = float(np.percentile(roi_samples, 90))
+        # Derive NPV percentiles from ROI percentiles and cost
+        cost_p50 = cost_triplet[1]
+        npv_p10 = cost_p50 * roi_p10 / 100.0
+        npv_p50 = cost_p50 * roi_p50 / 100.0
+        npv_p90 = cost_p50 * roi_p90 / 100.0
+        # Estimate payback period and benefit-cost ratio
+        payback_period_years = years * cost_p50 / max(benefit_triplet[1], 1.0) if benefit_triplet[1] > 0 else 0.0
+        benefit_cost_ratio = benefit_triplet[1] / max(cost_p50, 1.0) if cost_p50 > 0 else 0.0
+    else:
+        roi_p10 = roi_p50 = roi_p90 = 0.0
+        npv_p10 = npv_p50 = npv_p90 = 0.0
+        payback_period_years = 0.0
+        benefit_cost_ratio = 0.0
+
+    # 2. Energy risk simulation
+    energy_loss = 0.0
+    energy_outage_days = 0.0
+    if request.enable_energy_risk:
+        energy_res = energy_engine.simulate_energy_impact(
+            base_annual_benefit=benefit_triplet[1],
+            power_outage_days_triplet=power_outage_triplet,
+            gas_outage_days_triplet=gas_outage_triplet,
+            daily_downtime_loss=request.energy_daily_loss,
+            years=years,
+        )
+        energy_loss = energy_res["mean_annual_loss_toman"]
+        energy_outage_days = energy_res["mean_outage_days_yearly"]
+
+    # 3. Reliability risk simulation
+    downtime_loss = 0.0
+    downtime_hours = 0.0
+    if request.enable_reliability_risk:
+        rel_res = reliability_engine.simulate_downtime_risk(
+            base_annual_benefit=benefit_triplet[1],
+            mtbf_hours_triplet=mtbf_triplet,
+            mttr_hours_triplet=mttr_triplet,
+            hourly_downtime_loss=request.hourly_downtime_loss,
+            annual_operating_hours=request.annual_operating_hours,
+            years=years,
+        )
+        downtime_loss = rel_res["mean_annual_downtime_loss"]
+        downtime_hours = rel_res["mean_downtime_hours"]
+
+    # 4. Supply chain risk simulation
+    delay_days = 0.0
+    if request.enable_supply_chain_risk:
+        sc_res = supply_chain_engine.simulate_lead_time_risk(
+            planned_lead_time_days=request.planned_lead_time,
+            actual_lead_time_triplet=actual_lead_time_triplet,
+            daily_delay_cost=request.daily_delay_cost,
+        )
+        delay_days = sc_res["mean_delay_days"]
+
+    # 5. Tax incentives simulation
+    iran_tax_credit = 0.0
+    if request.enable_iran_tax:
+        iran_tax_res = tax_engine.simulate_iran_tax_credit(
+            rd_cost_triplet=cost_triplet,
+            approved_cost_pct_triplet=approved_pct_triplet,
+            corporate_tax_rate=request.corporate_tax_rate,
+        )
+        iran_tax_credit = iran_tax_res["mean_iran_tax_credit_savings"]
+
+    carbon_savings = 0.0
+    if request.enable_cbam_tax:
+        cbam_res = tax_engine.simulate_eu_cbam_benefit(
+            annual_export_tons_triplet=export_tons_triplet,
+            co2_reduction_per_ton_kg=request.co2_reduction_kg,
+            carbon_tax_per_ton_usd_triplet=carbon_tax_usd_triplet,
+            usd_to_toman_rate=request.base_fx_rate,
+            years=years,
+        )
+        carbon_savings = cbam_res["mean_annual_carbon_savings_toman"]
+
+    # 6. Aggregate results
+    total_downtime = downtime_hours + (energy_outage_days * 24.0)
+    base_annual_p50 = benefit_triplet[1]
+    adjusted_benefit = base_annual_p50 - energy_loss - downtime_loss + iran_tax_credit + carbon_savings
+    adjusted_benefit = max(adjusted_benefit, 0.0)
+
+    # Determine risk status based on VaR
+    risk_status = RiskStatus.HIGH_CONFIDENCE if mc_results["var_95"] > 0 else RiskStatus.MODERATE_RISK
+
+    # 7. Qualitative assessment via LLM provider
+    prompt = (
+        f"Evaluate proposal '{request.title}' with ROI = {mc_results['mean_roi']}%, "
+        f"VaR 95% = {mc_results['var_95']}%, Adjusted Benefit = {adjusted_benefit:,.0f} MToman."
+    )
+    llm_assessment = llm_provider.generate_json(prompt, "QualitativeAssessment")
+    qualitative = QualitativeAssessment.model_validate(llm_assessment)
+
+    # 8. Build quantitative metrics from MC results
+    quantitative_metrics = QuantitativeMetrics(
+        npv_p10=npv_p10,
+        npv_p50=npv_p50,
+        npv_p90=npv_p90,
+        roi_p10=roi_p10,
+        roi_p50=roi_p50,
+        roi_p90=roi_p90,
+        payback_period_years=payback_period_years,
+        benefit_cost_ratio=benefit_cost_ratio,
+    )
+
     return EvaluationResponse(
         title=request.title,
         cost=request.cost,
         benefit=request.benefit,
         p_success=request.p_success,
-        total_downtime_hours=120.5,
-        energy_loss_toman=5000000.0,
-        downtime_loss_toman=2400000.0,
-        lead_time_delay_days=15.0,
-        iran_tax_credit_toman=15000000.0,
-        carbon_savings_toman=0.0,
-        adjusted_net_benefit=25000000.0,
-        mean_roi=0.35,
-        var_95=-5000000.0,
-        probability_of_loss=12.5,
-        risk_status=RiskStatus.MODERATE_RISK,
-        quantitative_metrics=QuantitativeMetrics(
-            npv_p10=10000000.0,
-            npv_p50=25000000.0,
-            npv_p90=45000000.0,
-            roi_p10=0.15,
-            roi_p50=0.35,
-            roi_p90=0.55,
-            payback_period_years=2.8,
-            benefit_cost_ratio=1.4,
-        ),
-        qualitative_assessment=QualitativeAssessment(
-            technical_success_probability=0.85,
-            recommended_action="APPROVE_WITH_CONDITIONS",
-            risk_summary="Moderate risk profile with acceptable ROI. Energy and supply chain risks identified.",
-        ),
+        total_downtime_hours=round(total_downtime, 1),
+        energy_loss_toman=round(energy_loss, 2),
+        downtime_loss_toman=round(downtime_loss, 2),
+        lead_time_delay_days=round(delay_days, 1),
+        iran_tax_credit_toman=round(iran_tax_credit, 2),
+        carbon_savings_toman=round(carbon_savings, 2),
+        adjusted_net_benefit=round(adjusted_benefit, 2),
+        mean_roi=mc_results["mean_roi"],
+        var_95=mc_results["var_95"],
+        probability_of_loss=mc_results["probability_of_loss"],
+        risk_status=risk_status,
+        quantitative_metrics=quantitative_metrics,
+        qualitative_assessment=qualitative,
     )
 
 
@@ -341,8 +485,32 @@ async def health_check():
 
 @app.post("/api/v1/proposal/evaluate", response_model=EvaluationResponse, status_code=status.HTTP_200_OK)
 async def evaluate_proposal(request: ProposalRequest) -> EvaluationResponse:
-    """Evaluate a comprehensive proposal."""
-    return _mock_evaluation_response(request)
+    """Evaluate a comprehensive proposal using real core engines."""
+    try:
+        return _run_real_evaluation(request)
+    except ValidationError as e:
+        # Re-raise validation errors to be handled by the global handler
+        raise
+    except ValueError as e:
+        # Domain validation error (e.g., invalid triplet ordering) -> 400
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=ErrorResponse(
+                error_code="EVALUATION_INVALID_INPUT",
+                message="Proposal evaluation failed due to invalid input",
+                details={"error": str(e)},
+            ).model_dump(mode="json"),
+        )
+    except Exception as e:
+        # Domain/calculation failure -> structured error response
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=ErrorResponse(
+                error_code="EVALUATION_ERROR",
+                message="Proposal evaluation engine failed",
+                details={"error": str(e)},
+            ).model_dump(mode="json"),
+        )
 
 
 @app.post("/api/v1/simulation/run", response_model=SimulationResponse, status_code=status.HTTP_200_OK)
