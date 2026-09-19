@@ -28,6 +28,13 @@ from core.contracts import (
     TaskStatusResponse,
 )
 
+# Core simulation engines
+from core.monte_carlo import MonteCarloEngine
+from core.energy_simulation import EnergyRiskEngine
+from core.reliability_engine import ReliabilityEngine
+from core.supply_chain_engine import SupplyChainEngine
+from core.carbon_tax_engine import CarbonTaxEngine
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -97,7 +104,7 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
 
 
 # =============================================================================
-# MOCK RESPONSE GENERATORS
+# MOCK RESPONSE GENERATORS (kept for /evaluate and /optimize endpoints)
 # =============================================================================
 
 def _mock_evaluation_response(request: ProposalRequest) -> EvaluationResponse:
@@ -136,20 +143,6 @@ def _mock_evaluation_response(request: ProposalRequest) -> EvaluationResponse:
     )
 
 
-def _mock_simulation_response(request: SimulationRequest) -> SimulationResponse:
-    """Generate a mock SimulationResponse from a SimulationRequest."""
-    return SimulationResponse(
-        mean_roi=0.34,
-        var_95=-4800000.0,
-        probability_of_loss=13.2,
-        adjusted_net_benefit=24500000.0,
-        total_downtime_hours=118.7,
-        gas_outage_days_yearly=12.3,
-        power_outage_days_yearly=8.7,
-        mean_inflation_rate=0.48,
-    )
-
-
 def _mock_portfolio_response(request: PortfolioOptimizationRequest) -> PortfolioDecisionResponse:
     """Generate a mock PortfolioDecisionResponse from a PortfolioOptimizationRequest."""
     selected = [p.title for p in request.projects[:3]]
@@ -162,6 +155,138 @@ def _mock_portfolio_response(request: PortfolioOptimizationRequest) -> Portfolio
         total_selected_downtime=300.0,
         budget_utilization_pct=75.0,
         downtime_utilization_pct=60.0,
+    )
+
+
+# =============================================================================
+# REAL SIMULATION ENGINE INTEGRATION
+# =============================================================================
+
+def _run_real_simulation(request: SimulationRequest) -> SimulationResponse:
+    """
+    Execute real Monte Carlo and risk simulations using core engines.
+    
+    Maps SimulationRequest DTO fields to engine parameters and aggregates
+    results into a validated SimulationResponse.
+    """
+    proposal = request.proposal
+    iterations = request.iterations
+    seed = request.seed
+
+    # Instantiate engines with request parameters
+    mc_engine = MonteCarloEngine(num_simulations=iterations, seed=seed)
+    energy_engine = EnergyRiskEngine(num_simulations=iterations, seed=seed)
+    reliability_engine = ReliabilityEngine(num_simulations=iterations, seed=seed)
+    supply_chain_engine = SupplyChainEngine(num_simulations=iterations, seed=seed)
+    tax_engine = CarbonTaxEngine(num_simulations=iterations, seed=seed)
+
+    years = proposal.years
+
+    # Extract triplets from ProposalRequest
+    cost_triplet = (proposal.cost.low, proposal.cost.likely, proposal.cost.high)
+    benefit_triplet = (proposal.benefit.low, proposal.benefit.likely, proposal.benefit.high)
+    inflation_triplet = (proposal.inflation.low, proposal.inflation.likely, proposal.inflation.high)
+    fx_growth_triplet = (proposal.fx_growth.low, proposal.fx_growth.likely, proposal.fx_growth.high)
+    power_outage_triplet = (proposal.power_outage.low, proposal.power_outage.likely, proposal.power_outage.high)
+    gas_outage_triplet = (proposal.gas_outage.low, proposal.gas_outage.likely, proposal.gas_outage.high)
+    mtbf_triplet = (proposal.mtbf.low, proposal.mtbf.likely, proposal.mtbf.high)
+    mttr_triplet = (proposal.mttr.low, proposal.mttr.likely, proposal.mttr.high)
+    actual_lead_time_triplet = (proposal.actual_lead_time.low, proposal.actual_lead_time.likely, proposal.actual_lead_time.high)
+    approved_pct_triplet = (proposal.approved_pct.low, proposal.approved_pct.likely, proposal.approved_pct.high)
+    export_tons_triplet = (proposal.export_tons.low, proposal.export_tons.likely, proposal.export_tons.high)
+    carbon_tax_usd_triplet = (proposal.carbon_tax_usd.low, proposal.carbon_tax_usd.likely, proposal.carbon_tax_usd.high)
+
+    # 1. Monte Carlo ROI simulation
+    mc_results = mc_engine.run_roi_simulation(
+        cost_p10_p50_p90=cost_triplet,
+        benefit_p10_p50_p90=benefit_triplet,
+        inflation_p10_p50_p90=inflation_triplet,
+        fx_growth_p10_p50_p90=fx_growth_triplet,
+        currency_type=proposal.currency_type.value,
+        base_fx_rate=proposal.base_fx_rate,
+        annual_fx_savings=proposal.annual_fx_savings,
+        p_success=proposal.p_success,
+        years=years,
+    )
+
+    # 2. Energy risk simulation
+    energy_loss = 0.0
+    energy_outage_days = 0.0
+    if proposal.enable_energy_risk:
+        energy_res = energy_engine.simulate_energy_impact(
+            base_annual_benefit=benefit_triplet[1],
+            power_outage_days_triplet=power_outage_triplet,
+            gas_outage_days_triplet=gas_outage_triplet,
+            daily_downtime_loss=proposal.energy_daily_loss,
+            years=years,
+        )
+        energy_loss = energy_res["mean_annual_loss_toman"]
+        energy_outage_days = energy_res["mean_outage_days_yearly"]
+
+    # 3. Reliability risk simulation
+    downtime_loss = 0.0
+    downtime_hours = 0.0
+    if proposal.enable_reliability_risk:
+        rel_res = reliability_engine.simulate_downtime_risk(
+            base_annual_benefit=benefit_triplet[1],
+            mtbf_hours_triplet=mtbf_triplet,
+            mttr_hours_triplet=mttr_triplet,
+            hourly_downtime_loss=proposal.hourly_downtime_loss,
+            annual_operating_hours=proposal.annual_operating_hours,
+            years=years,
+        )
+        downtime_loss = rel_res["mean_annual_downtime_loss"]
+        downtime_hours = rel_res["mean_downtime_hours"]
+
+    # 4. Supply chain risk simulation
+    delay_days = 0.0
+    if proposal.enable_supply_chain_risk:
+        sc_res = supply_chain_engine.simulate_lead_time_risk(
+            planned_lead_time_days=proposal.planned_lead_time,
+            actual_lead_time_triplet=actual_lead_time_triplet,
+            daily_delay_cost=proposal.daily_delay_cost,
+        )
+        delay_days = sc_res["mean_delay_days"]
+
+    # 5. Tax incentives simulation
+    iran_tax_credit = 0.0
+    if proposal.enable_iran_tax:
+        iran_tax_res = tax_engine.simulate_iran_tax_credit(
+            rd_cost_triplet=cost_triplet,
+            approved_cost_pct_triplet=approved_pct_triplet,
+            corporate_tax_rate=proposal.corporate_tax_rate,
+        )
+        iran_tax_credit = iran_tax_res["mean_iran_tax_credit_savings"]
+
+    carbon_savings = 0.0
+    if proposal.enable_cbam_tax:
+        cbam_res = tax_engine.simulate_eu_cbam_benefit(
+            annual_export_tons_triplet=export_tons_triplet,
+            co2_reduction_per_ton_kg=proposal.co2_reduction_kg,
+            carbon_tax_per_ton_usd_triplet=carbon_tax_usd_triplet,
+            usd_to_toman_rate=proposal.base_fx_rate,
+            years=years,
+        )
+        carbon_savings = cbam_res["mean_annual_carbon_savings_toman"]
+
+    # 6. Aggregate results
+    total_downtime = downtime_hours + (energy_outage_days * 24.0)
+    base_annual_p50 = benefit_triplet[1]
+    adjusted_benefit = base_annual_p50 - energy_loss - downtime_loss + iran_tax_credit + carbon_savings
+    adjusted_benefit = max(adjusted_benefit, 0.0)
+
+    # Determine risk status based on VaR
+    risk_status = RiskStatus.HIGH_CONFIDENCE if mc_results["var_95"] > 0 else RiskStatus.MODERATE_RISK
+
+    return SimulationResponse(
+        mean_roi=mc_results["mean_roi"],
+        var_95=mc_results["var_95"],
+        probability_of_loss=mc_results["probability_of_loss"],
+        adjusted_net_benefit=adjusted_benefit,
+        total_downtime_hours=total_downtime,
+        gas_outage_days_yearly=energy_res.get("mean_outage_days_yearly", 0.0) if proposal.enable_energy_risk else 0.0,
+        power_outage_days_yearly=energy_res.get("mean_outage_days_yearly", 0.0) if proposal.enable_energy_risk else 0.0,
+        mean_inflation_rate=proposal.inflation.likely,
     )
 
 
@@ -183,8 +308,22 @@ async def evaluate_proposal(request: ProposalRequest) -> EvaluationResponse:
 
 @app.post("/api/v1/simulation/run", response_model=SimulationResponse, status_code=status.HTTP_200_OK)
 async def run_simulation(request: SimulationRequest) -> SimulationResponse:
-    """Run Monte Carlo / risk simulation."""
-    return _mock_simulation_response(request)
+    """Run Monte Carlo / risk simulation with real core engines."""
+    try:
+        return _run_real_simulation(request)
+    except ValidationError as e:
+        # Re-raise validation errors to be handled by the global handler
+        raise
+    except Exception as e:
+        # Domain/calculation failure -> structured error response
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=ErrorResponse(
+                error_code="SIMULATION_ERROR",
+                message="Simulation engine failed",
+                details={"error": str(e)},
+            ).model_dump(mode="json"),
+        )
 
 
 @app.post("/api/v1/portfolio/optimize", response_model=PortfolioDecisionResponse, status_code=status.HTTP_200_OK)
