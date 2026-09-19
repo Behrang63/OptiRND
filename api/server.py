@@ -36,6 +36,7 @@ from core.reliability_engine import ReliabilityEngine
 from core.supply_chain_engine import SupplyChainEngine
 from core.carbon_tax_engine import CarbonTaxEngine
 from core.portfolio_optimizer import PortfolioOptimizationEngine
+from core.qualitative_engine import calculate_technical_success_probability
 
 
 @asynccontextmanager
@@ -120,6 +121,22 @@ def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
     generates qualitative assessment, and aggregates results into a validated
     EvaluationResponse.
     """
+    # Derive p_success from qualitative attributes if present, else use provided p_success
+    trl_level = getattr(request, "trl_level", None)
+    team_capability = getattr(request, "team_capability", None)
+    technical_complexity = getattr(request, "technical_complexity", None)
+    supply_dependence = getattr(request, "supply_dependence", None)
+
+    if all(v is not None for v in (trl_level, team_capability, technical_complexity, supply_dependence)):
+        p_success = calculate_technical_success_probability(
+            trl_level=trl_level,
+            team_capability=team_capability,
+            technical_complexity=technical_complexity,
+            supply_dependence=supply_dependence,
+        )
+    else:
+        p_success = request.p_success
+
     # Extract triplets from ProposalRequest
     cost_triplet = (request.cost.low, request.cost.likely, request.cost.high)
     benefit_triplet = (request.benefit.low, request.benefit.likely, request.benefit.high)
@@ -154,7 +171,7 @@ def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
         currency_type=request.currency_type.value,
         base_fx_rate=request.base_fx_rate,
         annual_fx_savings=request.annual_fx_savings,
-        p_success=request.p_success,
+        p_success=p_success,
         years=years,
     )
 
@@ -271,7 +288,7 @@ def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
         title=request.title,
         cost=request.cost,
         benefit=request.benefit,
-        p_success=request.p_success,
+        p_success=p_success,
         total_downtime_hours=round(total_downtime, 1),
         energy_loss_toman=round(energy_loss, 2),
         downtime_loss_toman=round(downtime_loss, 2),

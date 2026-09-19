@@ -71,10 +71,10 @@ def main():
     selected_page = st.sidebar.radio("مرحله مورد نظر را انتخاب کنید:", pages)
 
     if selected_page == "۱. ثبت و ارزیابی جامع پروژه (Project Intake)":
-        render_ex_ante_view(llm_provider, db_session_factory)
+        render_ex_ante_view()
 
     elif selected_page == "۲. بهینه‌سازی سبد پروژه‌ها (Portfolio Selection)":
-        render_portfolio_view(db_session_factory)
+        render_portfolio_view()
 
     elif selected_page == "۳. پایش فرآیندی مایلستون‌ها (Process Monitoring)":
         render_process_view(llm_provider)

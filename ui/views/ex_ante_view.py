@@ -43,6 +43,11 @@ def _build_proposal_request(form_v: int) -> ProposalRequest:
     inf_p90 = st.session_state.get(f"inf90_{form_v}", 70.0)
     inf_sorted = sorted([float(inf_p10) / 100.0, float(inf_p50) / 100.0, float(inf_p90) / 100.0])
 
+    fxg_p10 = st.session_state.get(f"fxg10_{form_v}", 30.0)
+    fxg_p50 = st.session_state.get(f"fxg50_{form_v}", 45.0)
+    fxg_p90 = st.session_state.get(f"fxg90_{form_v}", 65.0)
+    fxg_sorted = sorted([float(fxg_p10) / 100.0, float(fxg_p50) / 100.0, float(fxg_p90) / 100.0])
+
     pwr_p10 = st.session_state.get(f"pwr10_{form_v}", 10.0)
     pwr_p50 = st.session_state.get(f"pwr50_{form_v}", 15.0)
     pwr_p90 = st.session_state.get(f"pwr90_{form_v}", 25.0)
@@ -68,7 +73,7 @@ def _build_proposal_request(form_v: int) -> ProposalRequest:
     lt_p90 = st.session_state.get(f"lt90_{form_v}", 160.0)
     lt_sorted = sorted([float(lt_p10), float(lt_p50), float(lt_p90)])
 
-    currency_choice = st.session_state.get(f"cur_choice_{form_v}", "دلار آمریکا (USD)")
+    currency_choice = st.session_state.get(f"currency_choice_{form_v}", "دلار آمریکا (USD)")
     currency_code = "USD" if "USD" in currency_choice else ("EUR" if "EUR" in currency_choice else "CNY")
 
     approved_cost_pct = st.session_state.get(f"apppct_{form_v}", 0.80)
@@ -87,13 +92,24 @@ def _build_proposal_request(form_v: int) -> ProposalRequest:
         export_tons * 1.3,
     ) if enable_cbam else (0.0, 0.0, 0.0)
 
+    ct_p10 = st.session_state.get(f"ct10_{form_v}", 60.0) if enable_cbam else 60.0
+    ct_p50 = st.session_state.get(f"ct50_{form_v}", 85.0) if enable_cbam else 85.0
+    ct_p90 = st.session_state.get(f"ct90_{form_v}", 120.0) if enable_cbam else 120.0
+    ct_sorted = sorted([float(ct_p10), float(ct_p50), float(ct_p90)])
+
+    trl_level = int(st.session_state.get(f"trl_level_{form_v}", 6))
+    team_capability = st.session_state.get(f"team_capability_{form_v}", "MEDIUM")
+    technical_complexity = st.session_state.get(f"technical_complexity_{form_v}", "MEDIUM")
+    supply_dependence = st.session_state.get(f"supply_dependence_{form_v}", "MODERATE_DELAY")
+
     return ProposalRequest(
         title=st.session_state.get(f"title_{form_v}", "Untitled Project"),
         years=int(st.session_state.get(f"years_{form_v}", 3)),
-        p_success=float(st.session_state.get(f"psucc_{form_v}", 0.85)),
+        p_success=float(st.session_state.get(f"psucc_{form_v}", 0.5)),
         cost=Triplet(low=costs_sorted[0], likely=costs_sorted[1], high=costs_sorted[2]),
         benefit=Triplet(low=benefits_sorted[0], likely=benefits_sorted[1], high=benefits_sorted[2]),
         inflation=Triplet(low=inf_sorted[0], likely=inf_sorted[1], high=inf_sorted[2]),
+        fx_growth=Triplet(low=fxg_sorted[0], likely=fxg_sorted[1], high=fxg_sorted[2]),
         currency_type=CurrencyType(currency_code),
         base_fx_rate=float(st.session_state.get(f"base_fx_{form_v}", 65000.0)),
         annual_fx_savings=float(st.session_state.get(f"fx_sav_{form_v}", 40000.0)),
@@ -116,7 +132,11 @@ def _build_proposal_request(form_v: int) -> ProposalRequest:
         enable_cbam_tax=enable_cbam,
         export_tons=NonNegativeTriplet(low=export_tons_triplet[0], likely=export_tons_triplet[1], high=export_tons_triplet[2]),
         co2_reduction_kg=float(co2_reduction_kg),
-        carbon_tax_usd=Triplet(low=60.0, likely=85.0, high=120.0),
+        carbon_tax_usd=Triplet(low=ct_sorted[0], likely=ct_sorted[1], high=ct_sorted[2]),
+        trl_level=trl_level,
+        team_capability=team_capability,
+        technical_complexity=technical_complexity,
+        supply_dependence=supply_dependence,
     )
 
 
@@ -197,7 +217,7 @@ def render_ex_ante_view():
     parsed_defaults = {
         "cost_p10": 0.0, "cost_p50": 0.0, "cost_p90": 0.0,
         "benefit_p10": 0.0, "benefit_p50": 0.0, "benefit_p90": 0.0,
-        "p_success": 0.85
+        "p_success": 0.5
     }
 
     if uploaded_file is not None:
@@ -239,6 +259,35 @@ def render_ex_ante_view():
         with p_col2:
             st.slider("افق زمانی بهره‌برداری (سال):", 1, 10, 3, key=f"years_{form_v}")
 
+        st.markdown("#### معیارهای کیفی احتمال موفقیت فنی")
+        qual_col1, qual_col2 = st.columns(2)
+        with qual_col1:
+            st.selectbox(
+                "سطح آمادگی فناوری (TRL)",
+                options=list(range(1, 10)),
+                index=5,
+                key=f"trl_level_{form_v}"
+            )
+            st.selectbox(
+                "توانمندی و سابقه تیم اجرایی",
+                options=["LOW", "MEDIUM", "HIGH"],
+                index=1,
+                key=f"team_capability_{form_v}"
+            )
+        with qual_col2:
+            st.selectbox(
+                "پیچیدگی فنی پروژه",
+                options=["LOW", "MEDIUM", "HIGH"],
+                index=1,
+                key=f"technical_complexity_{form_v}"
+            )
+            st.selectbox(
+                "وابستگی زنجیره تأمین و تجهیزات",
+                options=["DOMESTIC", "MODERATE_DELAY", "CRITICAL_IMPORT"],
+                index=1,
+                key=f"supply_dependence_{form_v}"
+            )
+
         st.markdown("**سه‌گانه درصد تورم سالانه ریالی:**")
         inf_col1, inf_col2, inf_col3 = st.columns(3)
         with inf_col1:
@@ -263,17 +312,19 @@ def render_ex_ante_view():
         st.number_input("زیان روزانه توقف فرآیند ناشی از قطعی انرژی (میلیون تومان):", value=40.0, step=5.0, key=f"enloss_{form_v}")
 
     with tab3:
-        st.markdown("#### ارزیابی نقص فنی و توقفات خط (MTBF)")
+        st.markdown("#### ارزیابی نقص فنی و توقفات خط (MTBF / MTTR)")
         st.checkbox("فعال‌سازی ارزیابی MTBF و توقفات خط", value=True, key=f"rel_chk_{form_v}")
         rel_col1, rel_col2 = st.columns(2)
         with rel_col1:
-            st.number_input("خوش‌بینانه (P10 - ساعت)", value=1200.0, step=100.0, key=f"mtbf10_{form_v}")
-            st.number_input("محتمل (P50 - ساعت)", value=900.0, step=100.0, key=f"mtbf50_{form_v}")
-            st.number_input("بدبینانه (P90 - ساعت)", value=500.0, step=100.0, key=f"mtbf90_{form_v}")
+            st.markdown("#### زمان رفع عیب و توقف (MTTR)")
+            st.number_input("مدت توقف خوش‌بینانه (P10 - ساعت)", value=2.0, step=0.5, key=f"mttr10_{form_v}")
+            st.number_input("محتمل (P50)", value=4.0, step=0.5, key=f"mttr50_{form_v}")
+            st.number_input("بدبینانه (P90)", value=8.0, step=0.5, key=f"mttr90_{form_v}")
         with rel_col2:
-            st.number_input("خوش‌بینانه (P10 - ساعت)", value=2.0, step=0.5, key=f"mttr10_{form_v}")
-            st.number_input("محتمل (P50 - ساعت)", value=4.0, step=0.5, key=f"mttr50_{form_v}")
-            st.number_input("بدبینانه (P90 - ساعت)", value=8.0, step=0.5, key=f"mttr90_{form_v}")
+            st.markdown("#### شاخص‌های فاصله بین خرابی‌ها (MTBF)")
+            st.number_input("فاصله خرابی خوش‌بینانه (P10 - ساعت)", value=1200.0, step=100.0, key=f"mtbf10_{form_v}")
+            st.number_input("محتمل (P50)", value=900.0, step=100.0, key=f"mtbf50_{form_v}")
+            st.number_input("بدبینانه (P90)", value=500.0, step=100.0, key=f"mtbf90_{form_v}")
         op_col1, op_col2 = st.columns(2)
         with op_col1:
             st.number_input("کل ساعات کاری سالانه خط (ساعت):", value=7200.0, step=200.0, key=f"ann_hrs_{form_v}")
@@ -281,14 +332,24 @@ def render_ex_ante_view():
             st.number_input("خسارت هر ساعت توقف خط (میلیون تومان):", value=20.0, step=2.0, key=f"hr_loss_{form_v}")
 
     with tab4:
+        currency_choice = st.session_state.get(f"currency_choice_{form_v}", "دلار آمریکا (USD)")
+        currency_code = "USD" if "USD" in currency_choice else ("EUR" if "EUR" in currency_choice else "CNY")
         st.markdown("#### تأخیرات زنجیره تأمین و صرفه‌جویی ارزی بومی‌سازی")
         cur_col1, cur_col2 = st.columns(2)
         with cur_col1:
-            st.selectbox("ارز مرجع صرفه‌جویی:", ["دلار آمریکا (USD)", "یورو (EUR)", "یوان چین (CNY)"], key=f"cur_choice_{form_v}")
+            st.selectbox("ارز مرجع صرفه‌جویی:", ["دلار آمریکا (USD)", "یورو (EUR)", "یوان چین (CNY)"], key=f"currency_choice_{form_v}")
             st.number_input(f"نرخ فعلی {currency_choice} به تومان:", value=65000.0, step=1000.0, key=f"base_fx_{form_v}")
         with cur_col2:
-            currency_code = "USD" if "USD" in currency_choice else ("EUR" if "EUR" in currency_choice else "CNY")
             st.number_input(f"صرفه‌جویی ارزی سالانه ({currency_code}):", value=40000.0, step=5000.0, key=f"fx_sav_{form_v}")
+
+        st.markdown("**سه‌گانه نرخ رشد ارز سالانه (درصد):**")
+        fxg_col1, fxg_col2, fxg_col3 = st.columns(3)
+        with fxg_col1:
+            st.number_input("حداقل رشد ارز (P10 - درصد)", value=30.0, step=5.0, key=f"fxg10_{form_v}")
+        with fxg_col2:
+            st.number_input("محتمل‌ترین رشد ارز (P50 - درصد)", value=45.0, step=5.0, key=f"fxg50_{form_v}")
+        with fxg_col3:
+            st.number_input("حداکثر رشد ارز (P90 - درصد)", value=65.0, step=5.0, key=f"fxg90_{form_v}")
 
         st.checkbox("فعال‌سازی ارزیابی تأخیر در ترخیص و تحویل تجهیزات", value=True, key=f"sc_chk_{form_v}")
         sc_col1, sc_col2 = st.columns(2)
@@ -321,6 +382,15 @@ def render_ex_ante_view():
                 st.number_input("تناژ صادرات سالانه مشمول عوارض (تن):", value=100000.0, step=10000.0, key=f"exptons_{form_v}")
             with cbam_col2:
                 st.number_input("کاهش CO2 به‌ازای هر تن تولید (کیلوگرم):", value=120.0, step=10.0, key=f"co2red_{form_v}")
+
+            st.markdown("**سه‌گانه مالیات کربن به ازای هر تن (دلار آمریکا):**")
+            ct_col1, ct_col2, ct_col3 = st.columns(3)
+            with ct_col1:
+                st.number_input("حداقل مالیات کربن (P10 - دلار)", value=60.0, step=5.0, key=f"ct10_{form_v}")
+            with ct_col2:
+                st.number_input("محتمل‌ترین مالیات کربن (P50 - دلار)", value=85.0, step=5.0, key=f"ct50_{form_v}")
+            with ct_col3:
+                st.number_input("حداکثر مالیات کربن (P90 - دلار)", value=120.0, step=5.0, key=f"ct90_{form_v}")
 
     st.markdown("---")
 
