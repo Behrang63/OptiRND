@@ -34,6 +34,7 @@ from core.energy_simulation import EnergyRiskEngine
 from core.reliability_engine import ReliabilityEngine
 from core.supply_chain_engine import SupplyChainEngine
 from core.carbon_tax_engine import CarbonTaxEngine
+from core.portfolio_optimizer import PortfolioOptimizationEngine
 
 
 @asynccontextmanager
@@ -104,7 +105,7 @@ async def request_validation_exception_handler(request: Request, exc: RequestVal
 
 
 # =============================================================================
-# MOCK RESPONSE GENERATORS (kept for /evaluate and /optimize endpoints)
+# MOCK RESPONSE GENERATORS (kept for /evaluate endpoint only)
 # =============================================================================
 
 def _mock_evaluation_response(request: ProposalRequest) -> EvaluationResponse:
@@ -143,18 +144,56 @@ def _mock_evaluation_response(request: ProposalRequest) -> EvaluationResponse:
     )
 
 
-def _mock_portfolio_response(request: PortfolioOptimizationRequest) -> PortfolioDecisionResponse:
-    """Generate a mock PortfolioDecisionResponse from a PortfolioOptimizationRequest."""
-    selected = [p.title for p in request.projects[:3]]
+# =============================================================================
+# REAL PORTFOLIO OPTIMIZATION ENGINE INTEGRATION
+# =============================================================================
+
+def _run_real_portfolio_optimization(request: PortfolioOptimizationRequest) -> PortfolioDecisionResponse:
+    """
+    Execute real portfolio optimization using the core PortfolioOptimizationEngine.
+
+    Maps PortfolioOptimizationRequest DTO fields to engine parameters and aggregates
+    results into a validated PortfolioDecisionResponse.
+    """
+    # Map DTO projects to engine format
+    engine_projects = []
+    for p in request.projects:
+        engine_projects.append({
+            "title": p.title,
+            "cost_p10": p.cost.low,
+            "cost_p50": p.cost.likely,
+            "cost_p90": p.cost.high,
+            "benefit_p10": p.benefit.low,
+            "benefit_p50": p.benefit.likely,
+            "benefit_p90": p.benefit.high,
+            "dt_p10": p.downtime.low,
+            "dt_p50": p.downtime.likely,
+            "dt_p90": p.downtime.high,
+        })
+
+    # Instantiate engine with deterministic seed for reproducibility
+    engine = PortfolioOptimizationEngine(num_scenarios=1000, seed=42)
+
+    # Execute optimization
+    result = engine.optimize_portfolio(
+        projects=engine_projects,
+        max_budget=request.budget_limit,
+        max_downtime_hours=request.max_downtime_hours,
+        method="stochastic",
+    )
+
+    # Map engine result to PortfolioDecisionResponse
+    selected_titles = [p["title"] for p in result.get("selected_projects", [])]
+
     return PortfolioDecisionResponse(
-        status="OPTIMAL",
-        method_used="stochastic",
-        selected_titles=selected,
-        total_selected_npv=75000000.0,
-        total_selected_cost=45000000.0,
-        total_selected_downtime=300.0,
-        budget_utilization_pct=75.0,
-        downtime_utilization_pct=60.0,
+        status=result.get("status", "FAILED"),
+        method_used=result.get("method_used", "stochastic"),
+        selected_titles=selected_titles,
+        total_selected_npv=result.get("total_selected_npv", 0.0),
+        total_selected_cost=result.get("total_selected_cost", 0.0),
+        total_selected_downtime=result.get("total_selected_downtime", 0.0),
+        budget_utilization_pct=result.get("budget_utilization_pct", 0.0),
+        downtime_utilization_pct=result.get("downtime_utilization_pct", 0.0),
     )
 
 
@@ -328,8 +367,32 @@ async def run_simulation(request: SimulationRequest) -> SimulationResponse:
 
 @app.post("/api/v1/portfolio/optimize", response_model=PortfolioDecisionResponse, status_code=status.HTTP_200_OK)
 async def optimize_portfolio(request: PortfolioOptimizationRequest) -> PortfolioDecisionResponse:
-    """Optimize portfolio selection."""
-    return _mock_portfolio_response(request)
+    """Optimize portfolio selection using the real core engine."""
+    try:
+        return _run_real_portfolio_optimization(request)
+    except ValidationError as e:
+        # Re-raise validation errors to be handled by the global handler
+        raise
+    except ValueError as e:
+        # Domain validation error (e.g., infeasible constraints) -> 400
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=ErrorResponse(
+                error_code="OPTIMIZATION_INVALID_INPUT",
+                message="Portfolio optimization failed due to invalid input",
+                details={"error": str(e)},
+            ).model_dump(mode="json"),
+        )
+    except Exception as e:
+        # Domain/calculation failure -> structured error response
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=ErrorResponse(
+                error_code="OPTIMIZATION_ERROR",
+                message="Portfolio optimization engine failed",
+                details={"error": str(e)},
+            ).model_dump(mode="json"),
+        )
 
 
 if __name__ == "__main__":
