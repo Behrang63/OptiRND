@@ -216,7 +216,7 @@ class EvaluationResponse(BaseModel):
     lead_time_delay_days: float = Field(ge=0)
     iran_tax_credit_toman: float = Field(ge=0)
     carbon_savings_toman: float = Field(ge=0)
-    adjusted_net_benefit: float = Field(ge=0)
+    adjusted_net_benefit: float = Field(description="Adjusted net annual benefit in Toman (can be negative for net loss)")
 
     mean_roi: float
     var_95: float
