@@ -258,8 +258,14 @@ def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
     # 6. Aggregate results
     total_downtime = downtime_hours + (energy_outage_days * 24.0)
     base_annual_p50 = benefit_triplet[1]
-    adjusted_benefit = base_annual_p50 - energy_loss - downtime_loss + iran_tax_credit + carbon_savings
-    adjusted_benefit = max(adjusted_benefit, 0.0)
+
+    # Calculate adjusted_net_benefit dynamically per specification
+    base_benefit = base_annual_p50 * p_success
+    supply_chain_deduction = delay_days * request.daily_delay_cost if request.enable_supply_chain_risk else 0.0
+    deductions = energy_loss + downtime_loss + supply_chain_deduction
+    additions = iran_tax_credit + carbon_savings
+    adjusted_net_benefit = round(base_benefit - deductions + additions, 2)
+    adjusted_net_benefit = max(adjusted_net_benefit, 0.0)
 
     # Determine risk status based on VaR
     risk_status = RiskStatus.HIGH_CONFIDENCE if mc_results["var_95"] > 0 else RiskStatus.MODERATE_RISK
@@ -267,10 +273,16 @@ def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
     # 7. Qualitative assessment via LLM provider
     prompt = (
         f"Evaluate proposal '{request.title}' with ROI = {mc_results['mean_roi']}%, "
-        f"VaR 95% = {mc_results['var_95']}%, Adjusted Benefit = {adjusted_benefit:,.0f} MToman."
+        f"VaR 95% = {mc_results['var_95']}%, Adjusted Benefit = {adjusted_net_benefit:,.0f} MToman."
     )
     llm_assessment = llm_provider.generate_json(prompt, "QualitativeAssessment")
     qualitative = QualitativeAssessment.model_validate(llm_assessment)
+    # Override technical_success_probability with dynamically computed p_success
+    qualitative = QualitativeAssessment(
+        technical_success_probability=p_success,
+        recommended_action=qualitative.recommended_action,
+        risk_summary=qualitative.risk_summary,
+    )
 
     # 8. Build quantitative metrics from MC results
     quantitative_metrics = QuantitativeMetrics(
@@ -295,7 +307,7 @@ def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
         lead_time_delay_days=round(delay_days, 1),
         iran_tax_credit_toman=round(iran_tax_credit, 2),
         carbon_savings_toman=round(carbon_savings, 2),
-        adjusted_net_benefit=round(adjusted_benefit, 2),
+        adjusted_net_benefit=adjusted_net_benefit,
         mean_roi=mc_results["mean_roi"],
         var_95=mc_results["var_95"],
         probability_of_loss=mc_results["probability_of_loss"],
