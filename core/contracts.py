@@ -125,6 +125,12 @@ class ProposalRequest(BaseModel):
     co2_reduction_kg: float = Field(default=0.0, ge=0)
     carbon_tax_usd: Triplet = Field(default_factory=lambda: Triplet(low=60.0, likely=85.0, high=120.0))
 
+    # Qualitative attributes
+    trl_level: int = Field(default=6, ge=1, le=9, description="Technology Readiness Level (1-9)")
+    team_capability: str = Field(default="MEDIUM", pattern="^(LOW|MEDIUM|HIGH)$", description="Team execution capability")
+    technical_complexity: str = Field(default="MEDIUM", pattern="^(LOW|MEDIUM|HIGH)$", description="Project technical complexity")
+    supply_dependence: str = Field(default="MODERATE_DELAY", pattern="^(DOMESTIC|MODERATE_DELAY|CRITICAL_IMPORT)$", description="Supply chain dependency")
+
     @model_validator(mode="after")
     def _validate_cbam(self) -> "ProposalRequest":
         if self.enable_cbam_tax and self.export_tons.likely <= 0:
