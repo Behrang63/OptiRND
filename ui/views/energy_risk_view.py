@@ -1,6 +1,5 @@
 import streamlit as st
 import httpx
-import pandas as pd
 from core.contracts import (
     SimulationRequest,
     SimulationResponse,
