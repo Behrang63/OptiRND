@@ -268,25 +268,42 @@ def render_ex_ante_view():
                 index=5,
                 key=f"trl_level_{form_v}"
             )
-            st.selectbox(
+            team_capability_options = ["متوسط", "بالا", "پایین"]
+            team_capability_map = {"متوسط": "MEDIUM", "بالا": "HIGH", "پایین": "LOW"}
+            team_capability_display = st.selectbox(
                 "توانمندی و سابقه تیم اجرایی",
-                options=["LOW", "MEDIUM", "HIGH"],
-                index=1,
-                key=f"team_capability_{form_v}"
+                options=team_capability_options,
+                index=0,
+                key=f"team_capability_display_{form_v}"
             )
+            st.session_state[f"team_capability_{form_v}"] = team_capability_map[team_capability_display]
         with qual_col2:
-            st.selectbox(
+            technical_complexity_options = ["متوسط", "بالا", "پایین"]
+            technical_complexity_map = {"متوسط": "MEDIUM", "بالا": "HIGH", "پایین": "LOW"}
+            technical_complexity_display = st.selectbox(
                 "پیچیدگی فنی پروژه",
-                options=["LOW", "MEDIUM", "HIGH"],
-                index=1,
-                key=f"technical_complexity_{form_v}"
+                options=technical_complexity_options,
+                index=0,
+                key=f"technical_complexity_display_{form_v}"
             )
-            st.selectbox(
+            st.session_state[f"technical_complexity_{form_v}"] = technical_complexity_map[technical_complexity_display]
+            supply_dependence_options = [
+                "تأخیر متعارف (واردات عادی)",
+                "تأمین کاملاً داخلی",
+                "واردات حیاتی و دارای ریسک تحریم"
+            ]
+            supply_dependence_map = {
+                "تأمین کاملاً داخلی": "DOMESTIC",
+                "تأخیر متعارف (واردات عادی)": "MODERATE_DELAY",
+                "واردات حیاتی و دارای ریسک تحریم": "CRITICAL_IMPORT"
+            }
+            supply_dependence_display = st.selectbox(
                 "وابستگی زنجیره تأمین و تجهیزات",
-                options=["DOMESTIC", "MODERATE_DELAY", "CRITICAL_IMPORT"],
-                index=1,
-                key=f"supply_dependence_{form_v}"
+                options=supply_dependence_options,
+                index=0,
+                key=f"supply_dependence_display_{form_v}"
             )
+            st.session_state[f"supply_dependence_{form_v}"] = supply_dependence_map[supply_dependence_display]
 
         st.markdown("**سه‌گانه درصد تورم سالانه ریالی:**")
         inf_col1, inf_col2, inf_col3 = st.columns(3)
