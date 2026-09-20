@@ -265,7 +265,6 @@ def _run_real_evaluation(request: ProposalRequest) -> EvaluationResponse:
     deductions = energy_loss + downtime_loss + supply_chain_deduction
     additions = iran_tax_credit + carbon_savings
     adjusted_net_benefit = round(base_benefit - deductions + additions, 2)
-    adjusted_net_benefit = max(adjusted_net_benefit, 0.0)
 
     # Determine risk status based on VaR
     risk_status = RiskStatus.HIGH_CONFIDENCE if mc_results["var_95"] > 0 else RiskStatus.MODERATE_RISK
