@@ -1,28 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="card-surface rounded-xl p-6 sm:p-8 border-steel-700" aria-labelledby="risks-title">
-    <!-- Secondary Navigation Bar -->
-    <nav class="mb-6 flex flex-wrap gap-2" aria-label="تب‌های اصلی">
-        <a 
-            href="/ex-ante" 
-            class="px-4 py-2 card-surface border-steel-700 border rounded-lg text-sm font-medium text-slate-300 hover:text-steel-100 hover:border-blue-500 transition-colors"
-            aria-current="false"
-        >
-            ارزیابی طرح‌ها
-        </a>
-        <a 
-            href="/risks" 
-            class="px-4 py-2 bg-blue-600/30 border-blue-500 border rounded-lg text-sm font-medium text-blue-300"
-            aria-current="page"
-        >
-            شبیه‌سازی ریسک و ناترازی
-        </a>
-    </nav>
-
-    <header class="mb-6">
-        <h2 id="risks-title" class="text-2xl font-semibold text-steel-100 mb-2">شبیه‌سازی ریسک عملیاتی و ناترازی انرژی (EAF/DRI)</h2>
-        <p class="text-slate-400">محاسبه ضرر ناترازی گاز/برق، خرابی مکانیکی، مالیات کربن CBAM، و مشوق‌های مالیاتی با Monte Carlo</p>
+<section class="space-y-6" aria-labelledby="risks-title">
+    <header class="mb-2">
+        <h2 id="risks-title" class="text-2xl font-semibold text-steel-100 mb-2">شبیه‌سازی ریسک عملیاتی و ناترازی انرژی <bdi dir="ltr">(DRI / EAF)</bdi></h2>
+        <p class="text-slate-400">مدل‌سازی زیان توقفات گاز و برق، خرابی مکانیکی نسوزها، تعدیل مرزی کربن <bdi dir="ltr">(EU CBAM)</bdi> و مشوق‌های قانونی</p>
     </header>
 
     <form 
@@ -33,12 +15,12 @@
         class="space-y-6"
         aria-label="فرم شبیه‌سازی ریسک و ناترازی"
     >
-        <!-- Project & Operations -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2">پروژه و عملیات</legend>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <!-- Card 1: Operating Profile & Plant Base -->
+        <div class="card-surface rounded-xl p-6 border border-steel-700">
+            <h3 class="text-lg font-semibold text-steel-100 mb-4">پروفایل پایه عملیاتی کارخانه</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="title" class="block text-sm font-medium text-steel-100 mb-2">عنوان شبیه‌سازی <span class="text-red-400" aria-hidden="true">*</span></label>
+                    <label for="title" class="form-label">عنوان تحلیل ریسک و سناریوی ناترازی</label>
                     <input 
                         type="text" 
                         id="title" 
@@ -47,11 +29,11 @@
                         minlength="3"
                         maxlength="255"
                         value="شبیه‌سازی ناترازی گاز و برق خطوط EAF/DRI"
-                        class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100 placeholder-slate-500"
+                        class="form-input"
                     >
                 </div>
                 <div>
-                    <label for="annual_operating_hours" class="block text-sm font-medium text-steel-100 mb-2">ساعات عملیات سالانه <span class="text-red-400" aria-hidden="true">*</span></label>
+                    <label for="annual_operating_hours" class="form-label">ساعات عملیاتی کارکرد سالانه پلنت (ساعت/سال)</label>
                     <input 
                         type="number" 
                         id="annual_operating_hours" 
@@ -61,83 +43,72 @@
                         max="8760"
                         step="100"
                         value="7200"
-                        class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
+                        class="form-input"
                     >
                 </div>
             </div>
-        </fieldset>
+        </div>
 
-        <!-- Energy Outage Risk (DRI Gas & EAF Power) -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2 flex items-center gap-2">
-                <input 
-                    type="checkbox" 
-                    id="enable_energy_risk" 
-                    name="enable_energy_risk" 
-                    value="true" 
-                    checked 
-                    class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500"
-                >
-                <label for="enable_energy_risk" class="cursor-pointer mb-0">ریسک ناترازی انرژی (گاز DRI و برق EAF)</label>
-            </legend>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4" id="energy-risk-fields">
-                <div>
-                    <label for="energy_outage_likely" class="block text-xs text-slate-400 mb-1">روزهای ناترازی محتمل (روز/سال)</label>
+        <!-- Card 2: Critical Metallurgical Risks -->
+        <div class="card-surface rounded-xl p-6 border border-steel-700">
+            <h3 class="text-lg font-semibold text-steel-100 mb-4">کارت‌های تفکیک‌شده ریسک خطوط تولید</h3>
+
+            <!-- Risk Group A - Energy Outage (DRI Gas & EAF Power) -->
+            <div class="border border-amber-900/40 bg-amber-950/10 rounded-lg p-4 mb-4">
+                <label class="flex items-center gap-3 cursor-pointer mb-4">
                     <input 
-                        type="number" 
-                        id="energy_outage_likely" 
-                        name="energy_outage_likely" 
-                        min="0"
-                        max="365"
-                        step="1"
-                        value="35"
-                        class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
+                        type="checkbox" 
+                        id="enable_energy_risk" 
+                        name="enable_energy_risk" 
+                        value="true" 
+                        checked 
+                        class="w-5 h-5 rounded accent-amber-500"
                     >
-                </div>
-                <div>
-                    <label for="energy_daily_loss" class="block text-xs text-slate-400 mb-1">ضرر روزانه (میلیون تومان/روز)</label>
-                    <input 
-                        type="number" 
-                        id="energy_daily_loss" 
-                        name="energy_daily_loss" 
-                        min="0"
-                        step="10"
-                        value="250"
-                        class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
-                    >
-                </div>
-                <div class="flex items-end">
-                    <label class="flex items-center gap-2 cursor-pointer w-full">
+                    <span class="font-semibold text-steel-100">ریسک ناترازی گاز احیای مستقیم <bdi dir="ltr">(DRI)</bdi> و برق کوره قوس <bdi dir="ltr">(EAF)</bdi></span>
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="energy_outage_likely" class="form-label">روزهای محتمل توقف گاز/برق (روز/سال)</label>
                         <input 
-                            type="checkbox" 
-                            name="enable_energy_risk" 
-                            value="true" 
-                            checked 
-                            class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500"
-                            aria-hidden="true"
+                            type="number" 
+                            id="energy_outage_likely" 
+                            name="energy_outage_likely" 
+                            min="0"
+                            max="365"
+                            value="35"
+                            class="form-input"
                         >
-                        <span class="text-sm text-steel-100">فعال‌سازی ریسک انرژی</span>
-                    </label>
+                    </div>
+                    <div>
+                        <label for="energy_daily_loss" class="form-label">زیان روزانه عدم‌النفع تولید (میلیون تومان/روز)</label>
+                        <input 
+                            type="number" 
+                            id="energy_daily_loss" 
+                            name="energy_daily_loss" 
+                            min="0"
+                            step="10"
+                            value="250"
+                            class="form-input"
+                        >
+                    </div>
                 </div>
             </div>
-        </fieldset>
 
-        <!-- Mechanical & Reliability Risk -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2 flex items-center gap-2">
-                <input 
-                    type="checkbox" 
-                    id="enable_reliability_risk" 
-                    name="enable_reliability_risk" 
-                    value="true" 
-                    checked 
-                    class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500"
-                >
-                <label for="enable_reliability_risk" class="cursor-pointer mb-0">ریسک مکانیکی و قابلیت اطمینان</label>
-            </legend>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4" id="reliability-risk-fields">
+            <!-- Risk Group B - Mechanical & Refractory Reliability -->
+            <div class="border border-steel-700 bg-slate-900/30 rounded-lg p-4 mb-4">
+                <label class="flex items-center gap-3 cursor-pointer mb-4">
+                    <input 
+                        type="checkbox" 
+                        id="enable_reliability_risk" 
+                        name="enable_reliability_risk" 
+                        value="true" 
+                        checked 
+                        class="w-5 h-5 rounded accent-blue-500"
+                    >
+                    <span class="font-semibold text-steel-100">ریسک خرابی نسوز پاتیل، کوره تصفیه <bdi dir="ltr">(LF)</bdi> و توقفات مکانیکی</span>
+                </label>
                 <div>
-                    <label for="hourly_downtime_loss" class="block text-xs text-slate-400 mb-1">ضرر ساعتی توقف (میلیون تومان/ساعت)</label>
+                    <label for="hourly_downtime_loss" class="form-label">زیان ساعتی توقف اضطراری خط (میلیون تومان/ساعت)</label>
                     <input 
                         type="number" 
                         id="hourly_downtime_loss" 
@@ -145,142 +116,175 @@
                         min="0"
                         step="5"
                         value="45"
-                        class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
+                        class="form-input"
                     >
                 </div>
-                <div class="flex items-end">
-                    <label class="flex items-center gap-2 cursor-pointer w-full">
-                        <input 
-                            type="checkbox" 
-                            name="enable_reliability_risk" 
-                            value="true" 
-                            checked 
-                            class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500"
-                            aria-hidden="true"
-                        >
-                        <span class="text-sm text-steel-100">فعال‌سازی ریسک قابلیت اطمینان</span>
-                    </label>
-                </div>
             </div>
-        </fieldset>
 
-        <!-- Carbon Tax & EU CBAM -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2 flex items-center gap-2">
-                <input 
-                    type="checkbox" 
-                    id="enable_cbam_tax" 
-                    name="enable_cbam_tax" 
-                    value="true" 
-                    checked 
-                    class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500"
-                >
-                <label for="enable_cbam_tax" class="cursor-pointer mb-0">مالیات کربن و تعدیل مرزی CBAM (اتحادیه اروپا)</label>
-            </legend>
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-4" id="cbam-fields">
-                <div>
-                    <label for="export_tons_likely" class="block text-xs text-slate-400 mb-1">حجم صادرات سالانه (تن)</label>
+            <!-- Risk Group C - EU CBAM Carbon Tariff & Domestic Tax Credit -->
+            <div class="border border-emerald-900/40 bg-emerald-950/10 rounded-lg p-4">
+                <label class="flex items-center gap-3 cursor-pointer mb-4">
                     <input 
-                        type="number" 
-                        id="export_tons_likely" 
-                        name="export_tons_likely" 
-                        min="0"
-                        step="1000"
-                        value="15000"
-                        class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
+                        type="checkbox" 
+                        id="enable_cbam_tax" 
+                        name="enable_cbam_tax" 
+                        value="true" 
+                        checked 
+                        class="w-5 h-5 rounded accent-emerald-500"
                     >
-                </div>
-                <div>
-                    <label for="carbon_tax_usd_likely" class="block text-xs text-slate-400 mb-1">قیمت کربن ETS (دلار/تن CO2)</label>
-                    <input 
-                        type="number" 
-                        id="carbon_tax_usd_likely" 
-                        name="carbon_tax_usd_likely" 
-                        min="0"
-                        step="5"
-                        value="75"
-                        class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
-                    >
-                </div>
-                <div class="flex items-end">
-                    <label class="flex items-center gap-2 cursor-pointer">
+                    <span class="font-semibold text-steel-100">تعدیل مرزی کربن صادراتی <bdi dir="ltr">(EU CBAM)</bdi> و مشوق‌های قانونی</span>
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="export_tons_likely" class="form-label">حجم صادرات سالانه بیلت/اسلب (تن)</label>
                         <input 
-                            type="checkbox" 
-                            name="enable_cbam_tax" 
-                            value="true" 
-                            checked 
-                            class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500"
-                            aria-hidden="true"
+                            type="number" 
+                            id="export_tons_likely" 
+                            name="export_tons_likely" 
+                            min="0"
+                            step="1000"
+                            value="15000"
+                            class="form-input"
                         >
-                        <span class="text-sm text-steel-100">فعال‌سازی CBAM</span>
-                    </label>
-                </div>
-                <div class="flex items-end">
-                    <label class="flex items-center gap-2 cursor-pointer">
+                    </div>
+                    <div>
+                        <label for="carbon_tax_usd_likely" class="form-label">نرخ گواهی کربن <bdi dir="ltr">ETS</bdi> (دلار/تن <bdi dir="ltr">CO2</bdi>)</label>
                         <input 
-                            type="checkbox" 
-                            id="enable_iran_tax_credit" 
-                            name="enable_iran_tax_credit" 
-                            value="true" 
-                            checked 
-                            class="w-5 h-5 accent-emerald-500 border-steel-700 rounded focus:ring-emerald-500"
+                            type="number" 
+                            id="carbon_tax_usd_likely" 
+                            name="carbon_tax_usd_likely" 
+                            min="0"
+                            step="5"
+                            value="75"
+                            class="form-input"
                         >
-                        <span class="text-sm text-steel-100">مشوق مالیاتی ایران (ماده ۱۱/۱۳)</span>
-                    </label>
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <label class="flex items-center gap-2.5 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="enable_iran_tax_credit" 
+                                name="enable_iran_tax_credit" 
+                                value="true" 
+                                checked 
+                                class="w-5 h-5 rounded accent-emerald-500"
+                            >
+                            <span class="text-sm font-medium text-emerald-300">اعتبار مالیاتی تحقیق و توسعه <bdi dir="ltr">(مواد ۱۱ و ۱۳)</bdi></span>
+                        </label>
+                    </div>
                 </div>
             </div>
-        </fieldset>
+        </div>
 
-        <!-- Financial Bounds (Million Tomans) -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2">محدوده‌های مالی (میلیون تومان)</legend>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">هزینه — پایین (P10)</label>
-                    <input type="number" name="cost_low" min="1" step="1000" value="30000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">هزینه — محتمل (P50)</label>
-                    <input type="number" name="cost_likely" min="1" step="1000" value="45000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">هزینه — بالا (P90)</label>
-                    <input type="number" name="cost_high" min="1" step="1000" value="60000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">سود — پایین (P10)</label>
-                    <input type="number" name="benefit_low" min="1" step="1000" value="60000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">سود — محتمل (P50)</label>
-                    <input type="number" name="benefit_likely" min="1" step="1000" value="85000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1">سود — بالا (P90)</label>
-                    <input type="number" name="benefit_high" min="1" step="1000" value="110000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-            </div>
-        </fieldset>
+        <!-- Card 3: Financial Scenario Spectrum -->
+        <div class="card-surface rounded-xl p-6 border border-steel-700">
+            <h3 class="text-lg font-semibold text-steel-100 mb-4">طیف سناریوهای مالی</h3>
 
-        <!-- Submit Button & Loading Spinner -->
+            <!-- Cost Triplet Sub-grid -->
+            <div class="mb-6">
+                <h4 class="text-sm font-medium text-slate-300 mb-3">هزینه‌های سرمایه‌ای - میلیون تومان</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="cost_low" class="form-label">سناریوی کمینه (<bdi dir="ltr">P10</bdi>)</label>
+                        <input 
+                            type="number" 
+                            id="cost_low" 
+                            name="cost_low" 
+                            min="0"
+                            step="1000"
+                            value="30000"
+                            class="form-input"
+                        >
+                    </div>
+                    <div>
+                        <label for="cost_likely" class="form-label">سناریوی محتمل (<bdi dir="ltr">P50</bdi>)</label>
+                        <input 
+                            type="number" 
+                            id="cost_likely" 
+                            name="cost_likely" 
+                            min="0"
+                            step="1000"
+                            value="45000"
+                            class="form-input"
+                        >
+                    </div>
+                    <div>
+                        <label for="cost_high" class="form-label">سناریوی بیشینه (<bdi dir="ltr">P90</bdi>)</label>
+                        <input 
+                            type="number" 
+                            id="cost_high" 
+                            name="cost_high" 
+                            min="0"
+                            step="1000"
+                            value="60000"
+                            class="form-input"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benefit Triplet Sub-grid -->
+            <div>
+                <h4 class="text-sm font-medium text-slate-300 mb-3">منافع سالانه - میلیون تومان</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label for="benefit_low" class="form-label">سناریوی محافظه‌کارانه (<bdi dir="ltr">P10</bdi>)</label>
+                        <input 
+                            type="number" 
+                            id="benefit_low" 
+                            name="benefit_low" 
+                            min="0"
+                            step="1000"
+                            value="60000"
+                            class="form-input"
+                        >
+                    </div>
+                    <div>
+                        <label for="benefit_likely" class="form-label">سناریوی محتمل (<bdi dir="ltr">P50</bdi>)</label>
+                        <input 
+                            type="number" 
+                            id="benefit_likely" 
+                            name="benefit_likely" 
+                            min="0"
+                            step="1000"
+                            value="85000"
+                            class="form-input"
+                        >
+                    </div>
+                    <div>
+                        <label for="benefit_high" class="form-label">سناریوی خوش‌بینانه (<bdi dir="ltr">P90</bdi>)</label>
+                        <input 
+                            type="number" 
+                            id="benefit_high" 
+                            name="benefit_high" 
+                            min="0"
+                            step="1000"
+                            value="110000"
+                            class="form-input"
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit CTA & Loading Spinner -->
         <div class="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-steel-700">
             <button 
                 type="submit" 
-                class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-steel-900"
+                class="btn-primary w-full sm:w-auto"
+                style="background: linear-gradient(135deg, #059669 0%, #047857 100%);"
             >
-                <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block ml-2" aria-hidden="true">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
-                اجرای شبیه‌سازی Monte Carlo
+                اجرای شبیه‌سازی جامع ریسک و ناترازی (Monte Carlo)
             </button>
             <div id="risk-spinner" class="htmx-indicator flex items-center gap-2 text-slate-400" aria-live="polite" aria-busy="true">
-                <svg class="animate-spin h-6 w-6 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                    <path d="M4 12a8 8 0 018-8"/>
                 </svg>
-                <span>در حال اجرای ۱۰,۰۰۰ شبیه‌سازی Monte Carlo و محاسبه ریسک‌ها...</span>
+                <span class="text-sm">در حال اجرای ۱۰,۰۰۰ تکرار شبیه‌سازی Monte Carlo و استخراج اثرات CBAM و ناترازی انرژی...</span>
             </div>
         </div>
     </form>
