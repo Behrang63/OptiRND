@@ -36,7 +36,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-steel-700 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-steel-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <svg class="w-6 h-6 shrink-0 inline-block text-steel-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                         </svg>
                     </div>
@@ -47,20 +47,26 @@
                         <p class="text-sm text-slate-400">{{ app_name }} v{{ version }}</p>
                     </div>
                 </div>
-                <nav class="flex flex-wrap items-center gap-2 justify-center sm:justify-end" aria-label="Domain indicators">
-                    <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
-                        <span class="badge-dot" aria-hidden="true"></span>
-                        <span class="text-sm font-medium text-steel-100">ریسک انرژی و توقفات کوره (DRI / EAF)</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
-                        <span class="badge-dot" aria-hidden="true"></span>
-                        <span class="text-sm font-medium text-steel-100">تعدیل مرزی کربن (CBAM)</span>
-                    </div>
-                    <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
-                        <span class="badge-dot" aria-hidden="true"></span>
-                        <span class="text-sm font-medium text-steel-100">مشوق مالیاتی جهش تولید (ماده ۱۱ و ۱۳)</span>
-                    </div>
+                <nav class="flex flex-wrap items-center gap-2 justify-center sm:justify-end" aria-label="Global navigation">
+                    <a href="/" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">داشبورد اصلی</a>
+                    <a href="/ex-ante" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">ارزیابی طرح‌ها (Ex-Ante)</a>
+                    <a href="/risks" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">شبیه‌سازی ناترازی و CBAM</a>
+                    <a href="/portfolio" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">بهینه‌سازی سبد فناوری</a>
                 </nav>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-end pb-4 border-b border-steel-700" aria-label="Domain indicators">
+                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                    <span class="w-2 h-2 shrink-0 inline-block rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    <span class="text-sm font-medium text-steel-100">ریسک انرژی و توقفات کوره (DRI / EAF)</span>
+                </div>
+                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                    <span class="w-2 h-2 shrink-0 inline-block rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    <span class="text-sm font-medium text-steel-100">تعدیل مرزی کربن (CBAM)</span>
+                </div>
+                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                    <span class="w-2 h-2 shrink-0 inline-block rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    <span class="text-sm font-medium text-steel-100">مشوق مالیاتی جهش تولید (مواد ۱۱ و ۱۳)</span>
+                </div>
             </div>
         </div>
     </header>

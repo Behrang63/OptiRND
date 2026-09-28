@@ -1,0 +1,8 @@
+.git
+.zcode
+__pycache__
+*.pyc
+venv
+.env
+tests
+*.md

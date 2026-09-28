@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card-surface rounded-xl p-6 sm:p-8 border-steel-700 mb-8" aria-labelledby="hero-title">
+    <header class="mb-8 text-center">
+        <h1 id="hero-title" class="text-3xl sm:text-4xl font-bold text-steel-100 mb-4 tracking-tight">
+            مرکز فرماندهی و ارزیابی فناوری صنایع فولاد (OptiRND)
+        </h1>
+        <p class="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            سامانه پایش تصمیم‌گیری متالورژی، کنترل ریسک ناترازی گاز و برق، و بهینه‌سازی سبد سرمایه‌گذاری R&D
+        </p>
+    </header>
+
+    <!-- Live KPI Strip -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8" role="region" aria-label="شاخص‌های کلیدی عملکرد">
+        <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">تعداد طرح‌های فعال</div>
+            <div class="text-3xl font-bold text-blue-400">{{ metrics.active_proposals_count }}</div>
+            <div class="text-xs text-slate-500 mt-1">پروژه در پایگاه داده</div>
+        </div>
+        <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 border-emerald-500">
+            <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">سقف بودجه سرمایه‌گذاری تحت مدیریت (میلیون تومان)</div>
+            <div class="text-3xl font-bold text-emerald-400">{{ "{:,.0f}".format(metrics.total_budget_allocated) }}</div>
+            <div class="text-xs text-slate-500 mt-1">مجموع هزینه محتمل طرح‌ها</div>
+        </div>
+        <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">وضعیت سرور و محاسبات مونت‌کارلو</div>
+            <div class="text-2xl font-bold text-amber-400">{{ metrics.system_status }}</div>
+            <div class="text-xs text-slate-500 mt-1">آماده به اجرا</div>
+        </div>
+    </div>
+</section>
+
+<!-- Three Strategic Industrial Action Cards -->
+<section aria-labelledby="actions-title">
+    <h2 id="actions-title" class="sr-only">اقدامات استراتژیک صنعتی</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6" role="list">
+        <!-- Card 1: Ex-Ante Evaluation -->
+        <article class="card-surface rounded-xl p-6 border-steel-700 hover:border-blue-500 transition-colors duration-200" role="listitem">
+            <div class="w-12 h-12 rounded-lg bg-blue-900/30 border border-blue-700 flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 shrink-0 inline-block text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-steel-100 mb-2">ارزیابی فنی و اقتصادی طرح‌ها (Ex-Ante)</h3>
+            <p class="text-slate-400 text-sm leading-relaxed mb-5">
+                سنجش احتمال موفقیت فنی بر اساس TRL متالورژی، پیچیدگی کوره قوس و ریسک قطعات تحریمی
+            </p>
+            <a href="/ex-ante" class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-steel-900">
+                ورود به ارزیابی طرح ➔
+            </a>
+        </article>
+
+        <!-- Card 2: Energy & Carbon Risk Simulation -->
+        <article class="card-surface rounded-xl p-6 border-steel-700 hover:border-amber-500 transition-colors duration-200" role="listitem">
+            <div class="w-12 h-12 rounded-lg bg-amber-900/30 border border-amber-700 flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 shrink-0 inline-block text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-steel-100 mb-2">شبیه‌سازی ناترازی انرژی و کربن</h3>
+            <p class="text-slate-400 text-sm leading-relaxed mb-5">
+                محاسبه خسارت توقفات گاز DRI و برق EAF، عوارض صادراتی EU CBAM و مشوق ماده ۱۱/۱۳
+            </p>
+            <a href="/risks" class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-steel-900">
+                ورود به شبیه‌ساز ریسک ➔
+            </a>
+        </article>
+
+        <!-- Card 3: Portfolio Optimization -->
+        <article class="card-surface rounded-xl p-6 border-steel-700 hover:border-emerald-500 transition-colors duration-200" role="listitem">
+            <div class="w-12 h-12 rounded-lg bg-emerald-900/30 border border-emerald-700 flex items-center justify-center mb-4">
+                <svg class="w-6 h-6 shrink-0 inline-block text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-steel-100 mb-2">بهینه‌سازی سبد فناوری و نوآوری</h3>
+            <p class="text-slate-400 text-sm leading-relaxed mb-5">
+                تخصیص بهینه سرمایه با الگوریتم کوله‌پشتی، تعیین مرز کارا و فرآیند تصویب حاکمیتی
+            </p>
+            <a href="/portfolio" class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-steel-900">
+                ورود به کنسول سبد ➔
+            </a>
+        </article>
+    </div>
+</section>
+{% endblock %}

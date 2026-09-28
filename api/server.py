@@ -526,11 +526,29 @@ async def health_check():
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def root_dashboard(request: Request):
-    """Root dashboard - renders base template."""
+    """Root dashboard - renders index template with live metrics."""
+    # Safe fallback metrics for landing page
+    metrics = {
+        "active_proposals_count": 0,
+        "total_budget_allocated": 0.0,
+        "system_status": "OPERATIONAL"
+    }
+    try:
+        from core.database import SessionLocal
+        from core.repository import ProposalRepository
+        with SessionLocal() as session:
+            repo = ProposalRepository(session)
+            proposals = repo.list_proposals(limit=100)
+            metrics["active_proposals_count"] = len(proposals)
+            if proposals:
+                metrics["total_budget_allocated"] = sum(p.cost_likely for p in proposals)
+    except Exception:
+        pass  # Maintain safe fallback if tables are unseeded
+    
     return templates.TemplateResponse(
         request,
-        "base.html",
-        {"app_name": "OptiRND Steel Suite", "version": "2.0.0"},
+        "index.html",
+        {"app_name": "OptiRND Steel Suite", "version": "2.0.0", "metrics": metrics},
     )
 
 
