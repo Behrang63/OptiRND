@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="card-surface rounded-xl p-6 sm:p-8 border-steel-700" aria-labelledby="ex-ante-title">
-    <header class="mb-6">
-        <h2 id="ex-ante-title" class="text-2xl font-semibold text-steel-100 mb-2">ارزیابی پیش‌رو (Ex-Ante) طرح‌های فناوری فولاد</h2>
+<section class="space-y-6" aria-labelledby="ex-ante-title">
+    <header class="mb-2">
+        <h2 id="ex-ante-title" class="text-2xl font-semibold text-steel-100 mb-1">ارزیابی پیش‌رو (Ex-Ante) طرح‌های فناوری فولاد</h2>
         <p class="text-slate-400">ورودی پارامترهای متالوگرافی و عملیاتی برای محاسبه احتمال موفقیت فنی، سود خالص تعدیل‌شده، و توزیع Monte Carlo</p>
     </header>
 
@@ -15,163 +15,287 @@
         class="space-y-6"
         aria-label="فرم ارزیابی طرح فناوری"
     >
-        <!-- Project Title -->
-        <div>
-            <label for="title" class="block text-sm font-medium text-steel-100 mb-2">عنوان طرح <span class="text-red-400" aria-hidden="true">*</span></label>
-            <input 
-                type="text" 
-                id="title" 
-                name="title" 
-                required 
-                minlength="3"
-                maxlength="255"
-                placeholder="مثال: بازیافت حرارت اسلاگ EAF، کاهش مصرف گاز DRI"
-                class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100 placeholder-slate-500"
-                aria-describedby="title-help"
-            >
-            <p id="title-help" class="mt-1 text-xs text-slate-500">حداقل ۳ کاراکتر، حداکثر ۲۵۵ کاراکتر</p>
+        <!-- Card 1: Project & Metallurgy Maturity -->
+        <div class="card-surface rounded-xl p-6 border border-steel-700">
+            <h3 class="text-lg font-medium text-steel-100 mb-5 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                مشخصات و بلوغ متالورژی
+            </h3>
+
+            <div class="space-y-5">
+                <!-- Title Input -->
+                <div>
+                    <label for="title" class="form-label">عنوان طرح متالورژی / R&D <span class="text-red-400" aria-hidden="true">*</span></label>
+                    <input 
+                        type="text" 
+                        id="title" 
+                        name="title" 
+                        required 
+                        minlength="3"
+                        maxlength="255"
+                        placeholder="مثال: بازیابی حرارت اتلافی سرباره کوره قوس (EAF)، تزریق هیدروژن در DRI"
+                        class="form-input"
+                        aria-describedby="title-help"
+                    >
+                    <p id="title-help" class="mt-1 text-xs text-slate-500">حداقل ۳ کاراکتر، حداکثر ۲۵۵ کاراکتر</p>
+                </div>
+
+                <!-- TRL Select -->
+                <div>
+                    <label for="trl_level" class="form-label">سطح آمادگی تکنولوژیک (TRL) <span class="text-red-400" aria-hidden="true">*</span></label>
+                    <select 
+                        id="trl_level" 
+                        name="trl_level" 
+                        required
+                        class="form-select"
+                    >
+                        <option value="1">TRL 1: مبانی علمی مشاهده شده</option>
+                        <option value="2">TRL 2: مفهوم تکنولوژیک تدوین شده</option>
+                        <option value="3">TRL 3: اثبات مفهوم آزمایشگاهی و متالوگرافی</option>
+                        <option value="4">TRL 4: اعتبارسنجی کامپوننت در محیط شبیه‌سازی شده</option>
+                        <option value="5">TRL 5: اعتبارسنجی کامپوننت در محیط مرتبط (پایلوت کوره القایی)</option>
+                        <option value="6" selected>TRL 6: نمایش سیستم/زیرسیستم در محیط مرتبط (تست نیمه‌صنعتی / پایلوت کوره القایی)</option>
+                        <option value="7">TRL 7: نمایش پیش‌نمونه سیستم در محیط عملیاتی (تست صنعتی در خط EAF/DRI)</option>
+                        <option value="8">TRL 8: سیستم کامل و واجد شرایط در محیط عملیاتی</option>
+                        <option value="9">TRL 9: سیستم واقعی اثبات‌شده در محیط عملیاتی (تست صنعتی در خط EAF/DRI)</option>
+                    </select>
+                </div>
+
+                <!-- Qualitative Triplet Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <!-- Team Capability -->
+                    <div>
+                        <label for="team_capability" class="form-label">توانمندی و سابقه تیم اجرایی <span class="text-red-400" aria-hidden="true">*</span></label>
+                        <select 
+                            id="team_capability" 
+                            name="team_capability" 
+                            required
+                            class="form-select"
+                        >
+                            <option value="LOW">LOW — تجربه محدود در پروژه‌های فولاد</option>
+                            <option value="MEDIUM" selected>MEDIUM — تجربه متوسط، پروژه‌های قبلی موفق</option>
+                            <option value="HIGH">HIGH — تیم ارشد، سابقه تحویل پروژه‌های پیچیده EAF/DRI</option>
+                        </select>
+                    </div>
+
+                    <!-- Technical Complexity -->
+                    <div>
+                        <label for="technical_complexity" class="form-label">پیچیدگی فنی پروژه <span class="text-red-400" aria-hidden="true">*</span></label>
+                        <select 
+                            id="technical_complexity" 
+                            name="technical_complexity" 
+                            required
+                            class="form-select"
+                        >
+                            <option value="LOW">LOW — تغییرات افزایشی، ریسک فنی پایین</option>
+                            <option value="MEDIUM" selected>MEDIUM — یکپارچه‌سازی چندسیستم، ریسک متوسط</option>
+                            <option value="HIGH">HIGH — فناوری نوین، ریسک فنی بالا، وابستگی به R&D</option>
+                        </select>
+                    </div>
+
+                    <!-- Supply Dependence -->
+                    <div>
+                        <label for="supply_dependence" class="form-label">وابستگی زنجیره تأمین و تجهیزات <span class="text-red-400" aria-hidden="true">*</span></label>
+                        <select 
+                            id="supply_dependence" 
+                            name="supply_dependence" 
+                            required
+                            class="form-select"
+                        >
+                            <option value="DOMESTIC">DOMESTIC — تأمین داخلی، ریسک تحریمیتی صفر</option>
+                            <option value="MODERATE_DELAY" selected>MODERATE_DELAY — ریسک تأخیر متوسط، جایگزین داخلی جزئی</option>
+                            <option value="CRITICAL_IMPORT">CRITICAL_IMPORT — قطعات بحرانی و نسوزهای تحریمی، ریسک قطع تأمین</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Metallurgical TRL -->
-        <div>
-            <label for="trl_level" class="block text-sm font-medium text-steel-100 mb-2">سطح آمادگی تکنولوژیک (TRL) <span class="text-red-400" aria-hidden="true">*</span></label>
-            <select 
-                id="trl_level" 
-                name="trl_level" 
-                required
-                class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
-            >
-                <option value="1">TRL 1: مبانی علمی مشاهده شده</option>
-                <option value="2">TRL 2: مفهوم تکنولوژیک تدوین شده</option>
-                <option value="3">TRL 3: اثبات مفهوم آزمایشگاهی و متالوگرافی</option>
-                <option value="4">TRL 4: اعتبارسنجی کامپوننت در محیط شبیه‌سازی شده</option>
-                <option value="5">TRL 5: اعتبارسنجی کامپوننت در محیط مرتبط (پایلوت کوره القایی)</option>
-                <option value="6" selected>TRL 6: نمایش سیستم/زیرسیستم در محیط مرتبط (تست نیمه‌صنعتی / پایلوت کوره القایی)</option>
-                <option value="7">TRL 7: نمایش پیش‌نمونه سیستم در محیط عملیاتی (تست صنعتی در خط EAF/DRI)</option>
-                <option value="8">TRL 8: سیستم کامل و واجد شرایط در محیط عملیاتی</option>
-                <option value="9">TRL 9: سیستم واقعی اثبات‌شده در محیط عملیاتی (تست صنعتی در خط EAF/DRI)</option>
-            </select>
+        <!-- Card 2: Financial Scenario Spectrum -->
+        <div class="card-surface rounded-xl p-6 border border-steel-700">
+            <h3 class="text-lg font-medium text-steel-100 mb-5 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                طیف سناریوهای مالی
+            </h3>
+
+            <div class="space-y-6">
+                <!-- Cost Triplet -->
+                <div>
+                    <h4 class="text-sm font-medium text-steel-300 mb-4">هزینه سرمایه‌ای - میلیون تومان</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="cost_low" class="form-label">سناریوی کمینه / خوش‌بینانه (<bdi dir="ltr">P10</bdi>)</label>
+                            <input 
+                                type="number" 
+                                id="cost_low" 
+                                name="cost_low" 
+                                required 
+                                min="1" 
+                                step="1000" 
+                                value="40000"
+                                class="form-input text-right"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div>
+                            <label for="cost_likely" class="form-label">سناریوی محتمل (<bdi dir="ltr">P50</bdi>)</label>
+                            <input 
+                                type="number" 
+                                id="cost_likely" 
+                                name="cost_likely" 
+                                required 
+                                min="1" 
+                                step="1000" 
+                                value="50000"
+                                class="form-input text-right"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div>
+                            <label for="cost_high" class="form-label">سناریوی بیشینه / محافظه‌کارانه (<bdi dir="ltr">P90</bdi>)</label>
+                            <input 
+                                type="number" 
+                                id="cost_high" 
+                                name="cost_high" 
+                                required 
+                                min="1" 
+                                step="1000" 
+                                value="65000"
+                                class="form-input text-right"
+                                inputmode="numeric"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Benefit Triplet -->
+                <div>
+                    <h4 class="text-sm font-medium text-steel-300 mb-4">سود ناخالص سالانه - میلیون تومان</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="benefit_low" class="form-label">سناریوی محافظه‌کارانه (<bdi dir="ltr">P10</bdi>)</label>
+                            <input 
+                                type="number" 
+                                id="benefit_low" 
+                                name="benefit_low" 
+                                required 
+                                min="1" 
+                                step="1000" 
+                                value="70000"
+                                class="form-input text-right"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div>
+                            <label for="benefit_likely" class="form-label">سناریوی محتمل (<bdi dir="ltr">P50</bdi>)</label>
+                            <input 
+                                type="number" 
+                                id="benefit_likely" 
+                                name="benefit_likely" 
+                                required 
+                                min="1" 
+                                step="1000" 
+                                value="95000"
+                                class="form-input text-right"
+                                inputmode="numeric"
+                            >
+                        </div>
+                        <div>
+                            <label for="benefit_high" class="form-label">سناریوی خوش‌بینانه (<bdi dir="ltr">P90</bdi>)</label>
+                            <input 
+                                type="number" 
+                                id="benefit_high" 
+                                name="benefit_high" 
+                                required 
+                                min="1" 
+                                step="1000" 
+                                value="120000"
+                                class="form-input text-right"
+                                inputmode="numeric"
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Team Capability, Technical Complexity, Supply Dependence -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-                <label for="team_capability" class="block text-sm font-medium text-steel-100 mb-2">ظرفیت تیم <span class="text-red-400" aria-hidden="true">*</span></label>
-                <select 
-                    id="team_capability" 
-                    name="team_capability" 
-                    required
-                    class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
-                >
-                    <option value="LOW">LOW — تجربه محدود در پروژه‌های فولاد</option>
-                    <option value="MEDIUM" selected>MEDIUM — تجربه متوسط، پروژه‌های قبلی موفق</option>
-                    <option value="HIGH">HIGH — تیم ارشد، سابقه تحویل پروژه‌های پیچیده EAF/DRI</option>
-                </select>
-            </div>
+        <!-- Card 3: Operational & Industrial Risks -->
+        <div class="card-surface rounded-xl p-6 border border-steel-700">
+            <h3 class="text-lg font-medium text-steel-100 mb-5 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                تراز ریسک‌های عملیاتی فولاد
+            </h3>
 
-            <div>
-                <label for="technical_complexity" class="block text-sm font-medium text-steel-100 mb-2">پیچیدگی فنی <span class="text-red-400" aria-hidden="true">*</span></label>
-                <select 
-                    id="technical_complexity" 
-                    name="technical_complexity" 
-                    required
-                    class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
-                >
-                    <option value="LOW">LOW — تغییرات افزایشی، ریسک فنی پایین</option>
-                    <option value="MEDIUM" selected>MEDIUM — یکپارچه‌سازی چندسیستم، ریسک متوسط</option>
-                    <option value="HIGH">HIGH — فناوری نوین، ریسک فنی بالا، وابستگی به R&D</option>
-                </select>
-            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <!-- Toggle 1: Energy Risk -->
+                <label class="flex flex-col gap-2 p-4 card-surface border border-steel-700 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <input 
+                            type="checkbox" 
+                            name="enable_energy_risk" 
+                            value="true" 
+                            checked 
+                            class="w-5 h-5 rounded accent-blue-600 border-steel-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-steel-900"
+                            aria-describedby="energy-risk-desc"
+                        >
+                        <span class="font-medium text-steel-100">ریسک ناترازی گاز و برق خطوط ذوب و احیا</span>
+                    </div>
+                    <p id="energy-risk-desc" class="text-xs text-slate-400 ml-8">محاسبه افت تولید ناشی از خاموشی زمستانه گاز DRI و دیماند برق EAF</p>
+                </label>
 
-            <div>
-                <label for="supply_dependence" class="block text-sm font-medium text-steel-100 mb-2">وابستگی زنجیره تأمین <span class="text-red-400" aria-hidden="true">*</span></label>
-                <select 
-                    id="supply_dependence" 
-                    name="supply_dependence" 
-                    required
-                    class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100"
-                >
-                    <option value="DOMESTIC">DOMESTIC — تأمین داخلی، ریسک تحریمیتی صفر</option>
-                    <option value="MODERATE_DELAY" selected>MODERATE_DELAY — ریسک تأخیر متوسط، جایگزین داخلی جزئی</option>
-                    <option value="CRITICAL_IMPORT">CRITICAL_IMPORT — قطعات بحرانی و نسوزهای تحریمی، ریسک قطع تأمین</option>
-                </select>
+                <!-- Toggle 2: Reliability Risk -->
+                <label class="flex flex-col gap-2 p-4 card-surface border border-steel-700 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <input 
+                            type="checkbox" 
+                            name="enable_reliability_risk" 
+                            value="true" 
+                            checked 
+                            class="w-5 h-5 rounded accent-blue-600 border-steel-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-steel-900"
+                            aria-describedby="reliability-risk-desc"
+                        >
+                        <span class="font-medium text-steel-100">ریسک خرابی نسوز و قابلیت اطمینان مکانیکی</span>
+                    </div>
+                    <p id="reliability-risk-desc" class="text-xs text-slate-400 ml-8">توقفات اضطراری پاتیل، کوره تصفیه (LF) و خطوط ریخته‌گری مداوم</p>
+                </label>
+
+                <!-- Toggle 3: Supply Chain Risk -->
+                <label class="flex flex-col gap-2 p-4 card-surface border border-steel-700 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <input 
+                            type="checkbox" 
+                            name="enable_supply_chain_risk" 
+                            value="true" 
+                            checked 
+                            class="w-5 h-5 rounded accent-blue-600 border-steel-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-steel-900"
+                            aria-describedby="supply-risk-desc"
+                        >
+                        <span class="font-medium text-steel-100">ریسک تحریم و تأمین قطعات بحرانی</span>
+                    </div>
+                    <p id="supply-risk-desc" class="text-xs text-slate-400 ml-8">تأخیر در تأمین الکترود گرافیتی، دریچه اسلایدگیت و جرم‌های نسوز وارداتی</p>
+                </label>
             </div>
         </div>
 
-        <!-- Financial Bounds: Cost Triplet -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2">محدوده مالی: هزینه (میلیون تومان) <span class="text-red-400" aria-hidden="true">*</span></legend>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                <div>
-                    <label for="cost_low" class="block text-xs text-slate-400 mb-1">پایین (P10)</label>
-                    <input type="number" id="cost_low" name="cost_low" required min="1" step="1000" value="40000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label for="cost_likely" class="block text-xs text-slate-400 mb-1">محتمل (P50)</label>
-                    <input type="number" id="cost_likely" name="cost_likely" required min="1" step="1000" value="50000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label for="cost_high" class="block text-xs text-slate-400 mb-1">بالا (P90)</label>
-                    <input type="number" id="cost_high" name="cost_high" required min="1" step="1000" value="65000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-            </div>
-        </fieldset>
-
-        <!-- Financial Bounds: Benefit Triplet -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2">محدوده مالی: سود/سودآوری (میلیون تومان) <span class="text-red-400" aria-hidden="true">*</span></legend>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                <div>
-                    <label for="benefit_low" class="block text-xs text-slate-400 mb-1">پایین (P10)</label>
-                    <input type="number" id="benefit_low" name="benefit_low" required min="1" step="1000" value="70000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label for="benefit_likely" class="block text-xs text-slate-400 mb-1">محتمل (P50)</label>
-                    <input type="number" id="benefit_likely" name="benefit_likely" required min="1" step="1000" value="95000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-                <div>
-                    <label for="benefit_high" class="block text-xs text-slate-400 mb-1">بالا (P90)</label>
-                    <input type="number" id="benefit_high" name="benefit_high" required min="1" step="1000" value="120000" class="w-full px-3 py-2 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-steel-100">
-                </div>
-            </div>
-        </fieldset>
-
-        <!-- Operational Risk Toggles -->
-        <fieldset class="border border-steel-700 rounded-lg p-4">
-            <legend class="text-sm font-medium text-steel-100 px-2">تغییرات ریسک عملیاتی</legend>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-                <label class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" name="enable_energy_risk" value="true" checked class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500">
-                    <span class="text-sm text-steel-100">ریسک گاز و برق کوره (enable_energy_risk)</span>
-                </label>
-                <label class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" name="enable_reliability_risk" value="true" checked class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500">
-                    <span class="text-sm text-steel-100">ریسک خرابی و توقف مکانیکی (enable_reliability_risk)</span>
-                </label>
-                <label class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" name="enable_supply_chain_risk" value="true" checked class="w-5 h-5 accent-blue-500 border-steel-700 rounded focus:ring-blue-500">
-                    <span class="text-sm text-steel-100">ریسک زنجیره تأمین (enable_supply_chain_risk)</span>
-                </label>
-            </div>
-        </fieldset>
-
-        <!-- Submit Button & Loading Spinner -->
-        <div class="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-steel-700">
+        <!-- Submit CTA & Loading Spinner -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-steel-700">
             <button 
                 type="submit" 
-                class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-steel-900"
+                class="btn-primary w-full sm:w-auto px-8 py-3.5"
+                style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);"
             >
-                <svg class="w-5 h-5 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block ml-2" aria-hidden="true">
+                    <path d="M18 20V10M12 20V4M6 20v-6"/>
                 </svg>
-                اجرای ارزیابی Monte Carlo
+                اجرای ارزیابی جامع Monte Carlo
             </button>
-            <div id="loading-spinner" class="htmx-indicator flex items-center gap-2 text-slate-400" aria-live="polite" aria-busy="true">
-                <svg class="animate-spin h-6 w-6 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+
+            <div id="loading-spinner" class="htmx-indicator flex items-center gap-3 text-sm text-slate-400" aria-live="polite" aria-busy="true">
+                <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                    <path d="M4 12a8 8 0 018-8"/>
                 </svg>
-                <span>در حال محاسبه توزیع Monte Carlo و ارزیابی کیفی...</span>
+                <span>در حال اجرای شبیه‌سازی استوکاستیک ۱۰,۰۰۰ سناریو و تحلیل متالورژی...</span>
             </div>
         </div>
     </form>
