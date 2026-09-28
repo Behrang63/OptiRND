@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name }} v{{ version }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        steel: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                            100: '#f8fafc',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .card-surface { background-color: #1e293b; border: 1px solid #334155; }
+        .border-steel { border-color: #334155; }
+        .text-steel { color: #f8fafc; }
+        .badge-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <header class="border-b border-steel-700 bg-steel-900/95 backdrop-blur-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-steel-700 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-steel-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-steel-100 tracking-tight">
+                            سامانه ارزیابی هوشمند و بهینه‌سازی سبد فناوری و نوآوری فولاد (OptiRND)
+                        </h1>
+                        <p class="text-sm text-slate-400">{{ app_name }} v{{ version }}</p>
+                    </div>
+                </div>
+                <nav class="flex flex-wrap items-center gap-2 justify-center sm:justify-end" aria-label="Domain indicators">
+                    <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                        <span class="badge-dot" aria-hidden="true"></span>
+                        <span class="text-sm font-medium text-steel-100">ریسک انرژی و توقفات کوره (DRI / EAF)</span>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                        <span class="badge-dot" aria-hidden="true"></span>
+                        <span class="text-sm font-medium text-steel-100">تعدیل مرزی کربن (CBAM)</span>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                        <span class="badge-dot" aria-hidden="true"></span>
+                        <span class="text-sm font-medium text-steel-100">مشوق مالیاتی جهش تولید (ماده ۱۱ و ۱۳)</span>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" role="main">
+        {% block content %}
+        <section class="card-surface rounded-xl p-6 sm:p-8 border-steel-700" aria-labelledby="dashboard-title">
+            <header class="mb-6">
+                <h2 id="dashboard-title" class="text-2xl font-semibold text-steel-100 mb-2">داشبورد ارزیابی فناوری فولاد</h2>
+                <p class="text-slate-400">نسخه {{ version }} — معماری Thin Client با HTMX و Jinja2</p>
+            </header>
+            <div class="text-center py-12">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-steel-800 border border-steel-700 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.940a1.785 1.785 0 01-3.593 0 6.358 6.358 0 000 12.121c.812.812 2.127.81 2.966-.063a1.786 1.786 0 011.416 2.53c-.64.81-1.746.968-2.587.35a9.525 9.525 0 01-10.186-10.186 1.777 1.777 0 012.53-1.416c.875.839 2.338.891 3.127.063a6.358 6.358 0 000-12.121zm11.268 11.268a1.785 1.785 0 01-3.593 0 6.358 6.358 0 000 12.121c.812.812 2.127.81 2.966-.063a1.786 1.786 0 011.416 2.53c-.64.81-1.746.968-2.587.35a9.525 9.525 0 01-10.186-10.186 1.777 1.777 0 012.53-1.416c.875.839 2.338.891 3.127.063a6.358 6.358 0 000-12.121z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-steel-100 mb-2">داشبورد ارزیابی فناوری فولاد آماده اتصال فرگمنت‌ها است.</h3>
+                <p class="text-slate-500 max-w-md mx-auto">این قالب پایه (base.html) موتور Jinja2، Tailwind CSS، و HTMX را با تم صنعتی فولاد (Steel Theme) و جهت RTL راه‌اندازی کرده است. فرگمنت‌های ارزیابی، پورتفوی، و شبیه‌سازی در فازهای بعدی تزریق خواهند شد.</p>
+            </div>
+            <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div class="card-surface rounded-lg p-4 border-steel-700">
+                    <div class="text-2xl font-bold text-green-400">0</div>
+                    <div class="text-sm text-slate-400 mt-1">پروژه در حال ارزیابی</div>
+                </div>
+                <div class="card-surface rounded-lg p-4 border-steel-700">
+                    <div class="text-2xl font-bold text-blue-400">0</div>
+                    <div class="text-sm text-slate-400 mt-1">پورتفوی بهینه‌سازی شده</div>
+                </div>
+                <div class="card-surface rounded-lg p-4 border-steel-700">
+                    <div class="text-2xl font-bold text-amber-400">0</div>
+                    <div class="text-sm text-slate-400 mt-1">شبیه‌سازی Monte Carlo</div>
+                </div>
+            </div>
+        </section>
+        {% endblock %}
+    </main>
+
+    <footer class="border-t border-steel-700 bg-steel-900/50 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
+            <p>OptiRND Steel Suite v{{ version }} — Thin Client Architecture · Zero Node.js Footprint · OWASP Compliant</p>
+        </div>
+    </footer>
+</body>
+</html>

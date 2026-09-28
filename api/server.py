@@ -6,10 +6,13 @@ from contextlib import asynccontextmanager
 from typing import List
 
 import numpy as np
+from pathlib import Path
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
+from starlette.templating import Jinja2Templates
+import jinja2
 
 from core.contracts import (
     ComplianceAuditResponse,
@@ -52,6 +55,14 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+jinja_env = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(str(TEMPLATES_DIR)),
+    autoescape=True,
+    cache_size=0,
+)
+templates = Jinja2Templates(env=jinja_env)
 
 
 # OWASP Security Headers Middleware
@@ -509,6 +520,16 @@ def _run_real_simulation(request: SimulationRequest) -> SimulationResponse:
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok", "service": "OptiRND Mock API"}
+
+
+@app.get("/", status_code=status.HTTP_200_OK)
+async def root_dashboard(request: Request):
+    """Root dashboard - renders base template."""
+    return templates.TemplateResponse(
+        request,
+        "base.html",
+        {"app_name": "OptiRND Steel Suite", "version": "2.0.0"},
+    )
 
 
 @app.post("/api/v1/proposal/evaluate", response_model=EvaluationResponse, status_code=status.HTTP_200_OK)
