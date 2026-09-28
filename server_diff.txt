@@ -1,0 +1,262 @@
+warning: in the working copy of 'api/server.py', LF will be replaced by CRLF the next time Git touches it
+diff --git a/api/server.py b/api/server.py
+index 9d8dc67..5606b67 100644
+--- a/api/server.py
++++ b/api/server.py
+@@ -9,7 +9,7 @@ import numpy as np
+ from pathlib import Path
+ from fastapi import FastAPI, Request, status
+ from fastapi.middleware.cors import CORSMiddleware
+-from fastapi.responses import JSONResponse
++from fastapi.responses import HTMLResponse, JSONResponse
+ from pydantic import ValidationError
+ from starlette.templating import Jinja2Templates
+ import jinja2
+@@ -30,6 +30,7 @@ from core.contracts import (
+     SimulationResponse,
+     TaskStatus,
+     TaskStatusResponse,
++    Triplet,
+ )
+ 
+ # Core simulation engines
+@@ -532,6 +533,16 @@ async def root_dashboard(request: Request):
+     )
+ 
+ 
++@app.get("/ex-ante", status_code=status.HTTP_200_OK)
++async def ex_ante_view(request: Request):
++    """Ex-Ante evaluation view for steel metallurgical proposals."""
++    return templates.TemplateResponse(
++        request,
++        "ex_ante.html",
++        {"app_name": "OptiRND Steel Suite", "version": "2.0.0"},
++    )
++
++
+ @app.post("/api/v1/proposal/evaluate", response_model=EvaluationResponse, status_code=status.HTTP_200_OK)
+ async def evaluate_proposal(request: ProposalRequest) -> EvaluationResponse:
+     """Evaluate a comprehensive proposal using real core engines."""
+@@ -612,6 +623,221 @@ async def optimize_portfolio(request: PortfolioOptimizationRequest) -> Portfolio
+         )
+ 
+ 
++@app.post("/web/proposal/evaluate-fragment", status_code=status.HTTP_200_OK)
++async def evaluate_proposal_fragment(request: Request):
++    """
++    HTMX fragment endpoint for Ex-Ante proposal evaluation.
++    Accepts form data, maps to ProposalRequest, runs real evaluation,
++    and returns an HTML fragment with results.
++    """
++    try:
++        form_data = await request.form()
++        
++        # Parse and map form fields to ProposalRequest structure
++        # Financial triplets
++        cost_low = float(form_data.get("cost_low", 40000))
++        cost_likely = float(form_data.get("cost_likely", 50000))
++        cost_high = float(form_data.get("cost_high", 65000))
++        benefit_low = float(form_data.get("benefit_low", 70000))
++        benefit_likely = float(form_data.get("benefit_likely", 95000))
++        benefit_high = float(form_data.get("benefit_high", 120000))
++        
++        # Qualitative attributes
++        trl_level = int(form_data.get("trl_level", 6))
++        team_capability = form_data.get("team_capability", "MEDIUM")
++        technical_complexity = form_data.get("technical_complexity", "MEDIUM")
++        supply_dependence = form_data.get("supply_dependence", "MODERATE_DELAY")
++        
++        # Risk toggles (checkboxes: present = true, absent = false)
++        enable_energy_risk = form_data.get("enable_energy_risk") == "true"
++        enable_reliability_risk = form_data.get("enable_reliability_risk") == "true"
++        enable_supply_chain_risk = form_data.get("enable_supply_chain_risk") == "true"
++        
++        # Build ProposalRequest with defaults for non-form fields
++        proposal_request = ProposalRequest(
++            title=form_data.get("title", "Untitled Proposal"),
++            trl_level=trl_level,
++            team_capability=team_capability,
++            technical_complexity=technical_complexity,
++            supply_dependence=supply_dependence,
++            cost=Triplet(low=cost_low, likely=cost_likely, high=cost_high),
++            benefit=Triplet(low=benefit_low, likely=benefit_likely, high=benefit_high),
++            enable_energy_risk=enable_energy_risk,
++            enable_reliability_risk=enable_reliability_risk,
++            enable_supply_chain_risk=enable_supply_chain_risk,
++        )
++        
++        # Run real evaluation
++        evaluation = _run_real_evaluation(proposal_request)
++        
++        # Render HTML fragment with results
++        risk_status_colors = {
++            "HIGH_CONFIDENCE": ("bg-green-900/30 text-green-400 border-green-700", "اطمینان بالا", "✓"),
++            "MODERATE_RISK": ("bg-amber-900/30 text-amber-400 border-amber-700", "ریسک متوسط", "⚠"),
++        }
++        risk_class, risk_label, risk_icon = risk_status_colors.get(evaluation.risk_status.value, ("bg-slate-700 text-slate-400 border-slate-600", "نامشخص", "?"))
++        
++        # Format numbers with thousand separators
++        def fmt(n: float) -> str:
++            return f"{n:,.0f}"
++        
++        fragment_html = f"""
++        <div class="card-surface rounded-xl p-6 border-steel-700 animate-fade-in" role="region" aria-label="نتایج ارزیابی">
++            <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-steel-700">
++                <h3 class="text-xl font-semibold text-steel-100">نتایج ارزیابی: {evaluation.title}</h3>
++                <span class="px-3 py-1.5 rounded-lg border {risk_class} text-sm font-medium flex items-center gap-1.5">
++                    <span aria-hidden="true">{risk_icon}</span>
++                    {risk_label}
++                </span>
++            </header>
++            
++            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
++                <!-- Probability of Technical Success -->
++                <div class="card-surface rounded-lg p-4 border-steel-700">
++                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">احتمال موفقیت فنی</div>
++                    <div class="text-3xl font-bold text-blue-400">{evaluation.p_success:.1%}</div>
++                    <div class="text-xs text-slate-500 mt-1">بر اساس TRL، تیم، پیچیدگی، و زنجیره تأمین</div>
++                </div>
++                
++                <!-- Adjusted Net Benefit -->
++                <div class="card-surface rounded-lg p-4 border-steel-700">
++                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">سود خالص تعدیل‌شده</div>
++                    <div class="text-3xl font-bold {'text-green-400' if evaluation.adjusted_net_benefit >= 0 else 'text-red-400'}">{fmt(evaluation.adjusted_net_benefit)} میلیون تومان</div>
++                    <div class="text-xs text-slate-500 mt-1">شامل کسرهای ریسک و مزایای مالیاتی</div>
++                </div>
++                
++                <!-- Mean ROI -->
++                <div class="card-surface rounded-lg p-4 border-steel-700">
++                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">میانگین ROI</div>
++                    <div class="text-3xl font-bold text-blue-400">{evaluation.mean_roi:.1f}%</div>
++                    <div class="text-xs text-slate-500 mt-1">Monte Carlo ۱۰,۰۰۰ شبیه‌سازی</div>
++                </div>
++                
++                <!-- VaR 95% -->
++                <div class="card-surface rounded-lg p-4 border-steel-700">
++                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">VaR ۹۵٪</div>
++                    <div class="text-3xl font-bold {'text-green-400' if evaluation.var_95 > 0 else 'text-red-400'}">{evaluation.var_95:.1f}%</div>
++                    <div class="text-xs text-slate-500 mt-1">ریسک ارزش در معرضه</div>
++                </div>
++            </div>
++            
++            <!-- Monte Carlo Distribution Cards -->
++            <div class="border-t border-steel-700 pt-6">
++                <h4 class="text-lg font-medium text-steel-100 mb-4 flex items-center gap-2">
++                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
++                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
++                    </svg>
++                    توزیع Monte Carlo (NPV و ROI)
++                </h4>
++                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
++                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
++                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">NPV P10</div>
++                        <div class="text-2xl font-bold text-red-400">{fmt(evaluation.quantitative_metrics.npv_p10)}</div>
++                        <div class="text-xs text-slate-500">میلیون تومان</div>
++                    </div>
++                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
++                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">NPV P50</div>
++                        <div class="text-2xl font-bold text-blue-400">{fmt(evaluation.quantitative_metrics.npv_p50)}</div>
++                        <div class="text-xs text-slate-500">میلیون تومان</div>
++                    </div>
++                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
++                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">NPV P90</div>
++                        <div class="text-2xl font-bold text-green-400">{fmt(evaluation.quantitative_metrics.npv_p90)}</div>
++                        <div class="text-xs text-slate-500">میلیون تومان</div>
++                    </div>
++                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
++                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">Mean ROI</div>
++                        <div class="text-2xl font-bold text-amber-400">{evaluation.quantitative_metrics.roi_p50:.1f}%</div>
++                        <div class="text-xs text-slate-500">P50 ROI</div>
++                    </div>
++                </div>
++                
++                <!-- Additional Metrics Row -->
++                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
++                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
++                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">ROI P10 / P90</div>
++                        <div class="text-lg font-bold text-slate-300">{evaluation.quantitative_metrics.roi_p10:.1f}% / {evaluation.quantitative_metrics.roi_p90:.1f}%</div>
++                    </div>
++                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
++                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">بازگشت سرمایه</div>
++                        <div class="text-lg font-bold text-slate-300">{evaluation.quantitative_metrics.payback_period_years:.1f} سال</div>
++                    </div>
++                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
++                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">نسبت سود/هزینه</div>
++                        <div class="text-lg font-bold text-slate-300">{evaluation.quantitative_metrics.benefit_cost_ratio:.2f}</div>
++                    </div>
++                </div>
++                
++                <!-- Qualitative Assessment -->
++                <div class="mt-6 pt-6 border-t border-steel-700">
++                    <h4 class="text-lg font-medium text-steel-100 mb-3 flex items-center gap-2">
++                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
++                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
++                        </svg>
++                        ارزیابی کیفی (LLM)
++                    </h4>
++                    <div class="card-surface rounded-lg p-4 border-steel-700">
++                        <div class="text-sm text-slate-300 whitespace-pre-wrap">{evaluation.qualitative_assessment.risk_summary}</div>
++                    </div>
++                    <div class="mt-3 flex flex-wrap gap-2">
++                        <span class="px-3 py-1 card-surface rounded-lg border-steel-700 text-sm text-slate-300">
++                            اقدام پیشنهادی: <span class="font-medium text-blue-400">{evaluation.qualitative_assessment.recommended_action}</span>
++                        </span>
++                    </div>
++                </div>
++            </div>
++        </div>
++        """
++        
++        from fastapi.responses import HTMLResponse
++        return HTMLResponse(content=fragment_html)
++        
++    except ValidationError as e:
++        error_html = f"""
++        <div class="card-surface rounded-xl p-6 border-red-700 bg-red-900/20" role="alert">
++            <div class="flex items-center gap-3 text-red-400 mb-3">
++                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
++                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
++                </svg>
++                <h4 class="font-semibold">خطای اعتبارسنجی ورودی</h4>
++            </div>
++            <ul class="text-sm text-slate-300 space-y-1">
++        """
++        for err in e.errors():
++            field = " → ".join(str(x) for x in err["loc"])
++            error_html += f"<li><span class='font-mono text-red-300'>{field}</span>: {err['msg']}</li>"
++        error_html += "</ul></div>"
++        return HTMLResponse(content=error_html, status_code=422)
++        
++    except ValueError as e:
++        error_html = f"""
++        <div class="card-surface rounded-xl p-6 border-amber-700 bg-amber-900/20" role="alert">
++            <div class="flex items-center gap-3 text-amber-400 mb-3">
++                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
++                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
++                </svg>
++                <h4 class="font-semibold">ورودی نامعتبر</h4>
++            </div>
++            <p class="text-sm text-slate-300">{str(e)}</p>
++        </div>
++        """
++        return HTMLResponse(content=error_html, status_code=400)
++        
++    except Exception as e:
++        error_html = f"""
++        <div class="card-surface rounded-xl p-6 border-red-700 bg-red-900/20" role="alert">
++            <div class="flex items-center gap-3 text-red-400 mb-3">
++                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
++                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
++                </svg>
++                <h4 class="font-semibold">خطای موتور ارزیابی</h4>
++            </div>
++            <p class="text-sm text-slate-300">خطای غیرمنتظره: {str(e)}</p>
++        </div>
++        """
++        return HTMLResponse(content=error_html, status_code=500)
++
++
+ if __name__ == "__main__":
+     import uvicorn
+     uvicorn.run(app, host="0.0.0.0", port=8001)
+\ No newline at end of file
