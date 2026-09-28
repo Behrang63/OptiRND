@@ -4,81 +4,143 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ app_name }} v{{ version }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        steel: {
-                            900: '#0f172a',
-                            800: '#1e293b',
-                            700: '#334155',
-                            100: '#f8fafc',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; }
-        .card-surface { background-color: #1e293b; border: 1px solid #334155; }
-        .border-steel { border-color: #334155; }
-        .text-steel { color: #f8fafc; }
-        .badge-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; }
-        /* Strict Hardware Constraint on all SVGs */
-        svg {
-          width: 24px !important;
-          height: 24px !important;
-          max-width: 24px !important;
-          max-height: 24px !important;
-          display: inline-block !important;
-          flex-shrink: 0 !important;
+        :root {
+            --bg-steel-base: #0b0f19;
+            --bg-steel-surface: #151e2e;
+            --bg-steel-elevated: #1e293b;
+            --border-steel: #243247;
+            --border-steel-focus: #3b82f6;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
         }
-        /* Core layout fallbacks if CDN fails */
-        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; margin: 0; direction: rtl; }
-        .card-surface { background-color: #1e293b; border: 1px solid #334155; }
+        body {
+            background-color: var(--bg-steel-base);
+            color: var(--text-primary);
+            font-family: 'Vazirmatn', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            direction: rtl;
+            -webkit-font-smoothing: antialiased;
+        }
+        /* Hardware constraint against SVG blowout */
+        svg {
+            width: 20px !important;
+            height: 20px !important;
+            max-width: 20px !important;
+            max-height: 20px !important;
+            display: inline-block !important;
+            flex-shrink: 0 !important;
+        }
+        /* Core surfaces & grid utilities */
+        .card-surface {
+            background-color: var(--bg-steel-surface);
+            border: 1px solid var(--border-steel);
+        }
         .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-        .btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 500; text-decoration: none; color: #ffffff; }
+
+        /* Global form element standards for all downstream pages */
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #e2e8f0;
+            margin-bottom: 0.5rem;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.65rem 0.85rem;
+            background-color: #0f172a;
+            border: 1px solid var(--border-steel);
+            border-radius: 0.5rem;
+            color: #f8fafc;
+            font-family: inherit;
+            font-size: 0.875rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            box-sizing: border-box;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--border-steel-focus);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+        }
+
+        /* Global segmented pill navigation */
+        .nav-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.45rem 0.9rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border-steel);
+            background-color: rgba(30, 41, 59, 0.5);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .nav-pill:hover {
+            color: #ffffff;
+            border-color: #3b82f6;
+            background-color: rgba(37, 99, 235, 0.15);
+        }
+
+        /* Reusable Action Buttons */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: #ffffff;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased">
-    <header class="border-b border-steel-700 bg-steel-900/95 backdrop-blur-sm sticky top-0 z-50">
+    <header class="border-b border-[var(--border-steel)] bg-[var(--bg-steel-base)]/95 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-steel-700 flex items-center justify-center">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-700 to-indigo-950 border border-blue-500/30 flex items-center justify-center">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-steel-100 tracking-tight">
+                        <h1 class="text-xl font-bold tracking-tight text-[var(--text-primary)]">
                             سامانه ارزیابی هوشمند و بهینه‌سازی سبد فناوری و نوآوری فولاد (OptiRND)
                         </h1>
-                        <p class="text-sm text-slate-400">{{ app_name }} v{{ version }}</p>
+                        <p class="text-sm text-[var(--text-secondary)]">{{ app_name }} v{{ version }} — مانیتورینگ متالورژی و تخصیص سرمایه R&D</p>
                     </div>
                 </div>
                 <nav class="flex flex-wrap items-center gap-2 justify-center sm:justify-end" aria-label="Global navigation">
-                    <a href="/" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">داشبورد اصلی</a>
-                    <a href="/ex-ante" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">ارزیابی طرح‌ها (Ex-Ante)</a>
-                    <a href="/risks" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">شبیه‌سازی ناترازی و CBAM</a>
-                    <a href="/portfolio" class="px-3 py-1.5 rounded-lg border border-steel-700 text-slate-300 hover:text-white hover:bg-steel-800 hover:border-steel-600 transition-colors text-sm font-medium">بهینه‌سازی سبد فناوری</a>
+                    <a href="/" class="nav-pill">داشبورد اصلی</a>
+                    <a href="/ex-ante" class="nav-pill">ارزیابی طرح‌ها (Ex-Ante)</a>
+                    <a href="/risks" class="nav-pill">شبیه‌سازی ناترازی و CBAM</a>
+                    <a href="/portfolio" class="nav-pill">بهینه‌سازی سبد فناوری</a>
                 </nav>
             </div>
-            <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-end pb-4 border-b border-steel-700" aria-label="Domain indicators">
-                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+            <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-end pb-4 border-b border-[var(--border-steel)]" aria-label="Domain indicators">
+                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-[var(--border-steel)]">
                     <span class="w-2 h-2 shrink-0 inline-block rounded-full bg-emerald-500" aria-hidden="true"></span>
-                    <span class="text-sm font-medium text-steel-100">ریسک انرژی و توقفات کوره (DRI / EAF)</span>
+                    <span class="text-sm font-medium text-[var(--text-primary)]">مشوق مالیاتی جهش تولید <bdi dir="ltr">(مواد ۱۱ و ۱۳)</bdi></span>
                 </div>
-                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-[var(--border-steel)]">
                     <span class="w-2 h-2 shrink-0 inline-block rounded-full bg-emerald-500" aria-hidden="true"></span>
-                    <span class="text-sm font-medium text-steel-100">تعدیل مرزی کربن (CBAM)</span>
+                    <span class="text-sm font-medium text-[var(--text-primary)]">ریسک انرژی و توقفات کوره <bdi dir="ltr">(DRI / EAF)</bdi></span>
                 </div>
-                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-steel-700">
+                <div class="flex items-center gap-2 px-3 py-1.5 card-surface rounded-lg border-[var(--border-steel)]">
                     <span class="w-2 h-2 shrink-0 inline-block rounded-full bg-emerald-500" aria-hidden="true"></span>
-                    <span class="text-sm font-medium text-steel-100">مشوق مالیاتی جهش تولید (مواد ۱۱ و ۱۳)</span>
+                    <span class="text-sm font-medium text-[var(--text-primary)]">تعدیل مرزی کربن <bdi dir="ltr">(EU CBAM)</bdi></span>
                 </div>
             </div>
         </div>
@@ -86,41 +148,41 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" role="main">
         {% block content %}
-        <section class="card-surface rounded-xl p-6 sm:p-8 border-steel-700" aria-labelledby="dashboard-title">
+        <section class="card-surface rounded-xl p-6 sm:p-8 border-[var(--border-steel)]" aria-labelledby="dashboard-title">
             <header class="mb-6">
-                <h2 id="dashboard-title" class="text-2xl font-semibold text-steel-100 mb-2">داشبورد ارزیابی فناوری فولاد</h2>
-                <p class="text-slate-400">نسخه {{ version }} — معماری Thin Client با HTMX و Jinja2</p>
+                <h2 id="dashboard-title" class="text-2xl font-semibold text-[var(--text-primary)] mb-2">داشبورد ارزیابی فناوری فولاد</h2>
+                <p class="text-[var(--text-secondary)]">نسخه {{ version }} — معماری Thin Client با HTMX و Jinja2</p>
             </header>
             <div class="text-center py-12">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-steel-800 border border-steel-700 flex items-center justify-center">
-                    <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--bg-steel-elevated)] border border-[var(--border-steel)] flex items-center justify-center">
+                    <svg class="w-8 h-8 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.940a1.785 1.785 0 01-3.593 0 6.358 6.358 0 000 12.121c.812.812 2.127.81 2.966-.063a1.786 1.786 0 011.416 2.53c-.64.81-1.746.968-2.587.35a9.525 9.525 0 01-10.186-10.186 1.777 1.777 0 012.53-1.416c.875.839 2.338.891 3.127.063a6.358 6.358 0 000-12.121zm11.268 11.268a1.785 1.785 0 01-3.593 0 6.358 6.358 0 000 12.121c.812.812 2.127.81 2.966-.063a1.786 1.786 0 011.416 2.53c-.64.81-1.746.968-2.587.35a9.525 9.525 0 01-10.186-10.186 1.777 1.777 0 012.53-1.416c.875.839 2.338.891 3.127.063a6.358 6.358 0 000-12.121z" />
                     </svg>
                 </div>
-                <h3 class="text-lg font-medium text-steel-100 mb-2">داشبورد ارزیابی فناوری فولاد آماده اتصال فرگمنت‌ها است.</h3>
-                <p class="text-slate-500 max-w-md mx-auto">این قالب پایه (base.html) موتور Jinja2، Tailwind CSS، و HTMX را با تم صنعتی فولاد (Steel Theme) و جهت RTL راه‌اندازی کرده است. فرگمنت‌های ارزیابی، پورتفوی، و شبیه‌سازی در فازهای بعدی تزریق خواهند شد.</p>
+                <h3 class="text-lg font-medium text-[var(--text-primary)] mb-2">داشبورد ارزیابی فناوری فولاد آماده اتصال فرگمنت‌ها است.</h3>
+                <p class="text-[var(--text-muted)] max-w-md mx-auto">این قالب پایه (base.html) موتور Jinja2، Tailwind CSS، و HTMX را با تم صنعتی فولاد (Steel Theme) و جهت RTL راه‌اندازی کرده است. فرگمنت‌های ارزیابی، پورتفوی، و شبیه‌سازی در فازهای بعدی تزریق خواهند شد.</p>
             </div>
             <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div class="card-surface rounded-lg p-4 border-steel-700">
+                <div class="card-surface rounded-lg p-4 border-[var(--border-steel)]">
                     <div class="text-2xl font-bold text-green-400">0</div>
-                    <div class="text-sm text-slate-400 mt-1">پروژه در حال ارزیابی</div>
+                    <div class="text-sm text-[var(--text-muted)] mt-1">پروژه در حال ارزیابی</div>
                 </div>
-                <div class="card-surface rounded-lg p-4 border-steel-700">
+                <div class="card-surface rounded-lg p-4 border-[var(--border-steel)]">
                     <div class="text-2xl font-bold text-blue-400">0</div>
-                    <div class="text-sm text-slate-400 mt-1">پورتفوی بهینه‌سازی شده</div>
+                    <div class="text-sm text-[var(--text-muted)] mt-1">پورتفوی بهینه‌سازی شده</div>
                 </div>
-                <div class="card-surface rounded-lg p-4 border-steel-700">
+                <div class="card-surface rounded-lg p-4 border-[var(--border-steel)]">
                     <div class="text-2xl font-bold text-amber-400">0</div>
-                    <div class="text-sm text-slate-400 mt-1">شبیه‌سازی Monte Carlo</div>
+                    <div class="text-sm text-[var(--text-muted)] mt-1">شبیه‌سازی Monte Carlo</div>
                 </div>
             </div>
         </section>
         {% endblock %}
     </main>
 
-    <footer class="border-t border-steel-700 bg-steel-900/50 py-6 mt-auto">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-            <p>OptiRND Steel Suite v{{ version }} — Thin Client Architecture · Zero Node.js Footprint · OWASP Compliant</p>
+    <footer class="border-t border-[var(--border-steel)] bg-[var(--bg-steel-base)]/50 py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-[var(--text-muted)]">
+            <p>OptiRND Steel Suite v{{ version }} — معماری کلاینت نازک متالورژی · پایش تصمیم‌گیری صنعتی فولاد</p>
         </div>
     </footer>
 </body>
