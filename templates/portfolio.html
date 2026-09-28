@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card-surface rounded-xl p-6 sm:p-8 border-steel-700" aria-labelledby="portfolio-title">
+    <!-- Primary Navigation Bar -->
+    <nav class="mb-6 flex flex-wrap gap-2" aria-label="تب‌های اصلی">
+        <a 
+            href="/ex-ante" 
+            class="px-4 py-2 card-surface border-steel-700 border rounded-lg text-sm font-medium text-slate-300 hover:text-steel-100 hover:border-blue-500 transition-colors"
+            aria-current="false"
+        >
+            ارزیابی طرح‌ها
+        </a>
+        <a 
+            href="/risks" 
+            class="px-4 py-2 card-surface border-steel-700 border rounded-lg text-sm font-medium text-slate-300 hover:text-steel-100 hover:border-blue-500 transition-colors"
+            aria-current="false"
+        >
+            شبیه‌سازی ریسک و ناترازی
+        </a>
+        <a 
+            href="/portfolio" 
+            class="px-4 py-2 bg-emerald-600/30 border-emerald-500 border rounded-lg text-sm font-medium text-emerald-300"
+            aria-current="page"
+        >
+            بهینه‌سازی سبد فناوری
+        </a>
+    </nav>
+
+    <header class="mb-6">
+        <h2 id="portfolio-title" class="text-2xl font-semibold text-steel-100 mb-2">بهینه‌سازی سبد فناوری R&D (فاز ۴A)</h2>
+        <p class="text-slate-400">تعیین سقف سرمایه‌گذاری، انتخاب پروژه‌های متالوگرافی، و اجرای بهینه‌سازی کناپ‌ساک چندمعیاره با نظارت انسانی</p>
+    </header>
+
+    <form 
+        hx-post="/web/portfolio/optimize-fragment" 
+        hx-target="#portfolio-results" 
+        hx-swap="innerHTML" 
+        hx-indicator="#portfolio-spinner"
+        class="space-y-6"
+        aria-label="فرم بهینه‌سازی سبد فناوری"
+    >
+        <!-- CapEx Budget Header -->
+        <fieldset class="border border-steel-700 rounded-lg p-4 bg-emerald-900/10 border-emerald-700/30">
+            <legend class="text-sm font-medium text-emerald-300 px-2 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                سقف بودجه کل سرمایه‌گذاری R&D (میلیون تومان)
+            </legend>
+            <div class="mt-4">
+                <input 
+                    type="number" 
+                    id="budget_limit" 
+                    name="budget_limit" 
+                    required 
+                    min="10000" 
+                    step="5000" 
+                    value="120000"
+                    class="w-full sm:w-64 px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-steel-100"
+                    aria-describedby="budget-help"
+                >
+                <p id="budget-help" class="mt-1 text-xs text-slate-500">حداقل ۱۰,۰۰۰ میلیون تومان، گام ۵,۰۰۰ میلیون تومان (پیش‌فرض: ۱۲۰,۰۰۰)</p>
+            </div>
+        </fieldset>
+
+        <!-- Pre-loaded Metallurgical Candidate Projects (Editable Table) -->
+        <fieldset class="border border-steel-700 rounded-lg p-4">
+            <legend class="text-sm font-medium text-steel-100 px-2 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                پروژه‌های کاندید متالوگرافی (قابل ویرایش و انتخاب)
+            </legend>
+            <div class="mt-4 overflow-x-auto">
+                <table class="w-full text-sm" role="grid" aria-label="جدول پروژه‌های کاندید">
+                    <thead>
+                        <tr class="border-b border-steel-700 text-slate-400">
+                            <th class="px-3 py-2 text-right font-medium">انتخاب</th>
+                            <th class="px-3 py-2 text-right font-medium">عنوان پروژه</th>
+                            <th class="px-3 py-2 text-center font-medium">هزینه (میلیون تومان)</th>
+                            <th class="px-3 py-2 text-center font-medium">سود (میلیون تومان)</th>
+                            <th class="px-3 py-2 text-center font-medium">TRL</th>
+                            <th class="px-3 py-2 text-center font-medium">پیچیدگی</th>
+                            <th class="px-3 py-2 text-center font-medium">زنجیره تأمین</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-steel-700">
+                        <!-- Project 1: EAF Heat Recovery -->
+                        <tr class="hover:bg-steel-800/50 transition-colors">
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="checkbox" 
+                                    name="project_selected" 
+                                    value="1" 
+                                    checked
+                                    class="w-5 h-5 accent-emerald-500 border-steel-700 rounded focus:ring-emerald-500"
+                                    aria-label="انتخاب پروژه بازیابی حرارت EAF"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-steel-100 font-medium">
+                                <input 
+                                    type="hidden" 
+                                    name="project_1_title" 
+                                    value="بازیابی حرارت اتلافی سرباره کوره قوس (EAF Heat Recovery)"
+                                >
+                                بازیابی حرارت اتلافی سرباره کوره قوس (EAF Heat Recovery)
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_1_cost" 
+                                    value="45000" 
+                                    min="1000" 
+                                    step="1000"
+                                    class="w-24 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_1_benefit" 
+                                    value="80000" 
+                                    min="1000" 
+                                    step="1000"
+                                    class="w-24 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_1_trl" 
+                                    value="7" 
+                                    min="1" 
+                                    max="9"
+                                    class="w-16 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <select 
+                                    name="project_1_complexity" 
+                                    class="w-28 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="LOW">LOW</option>
+                                    <option value="MEDIUM" selected>MEDIUM</option>
+                                    <option value="HIGH">HIGH</option>
+                                </select>
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <select 
+                                    name="project_1_supply" 
+                                    class="w-32 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="DOMESTIC" selected>DOMESTIC</option>
+                                    <option value="MODERATE_DELAY">MODERATE_DELAY</option>
+                                    <option value="CRITICAL_IMPORT">CRITICAL_IMPORT</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <!-- Project 2: DRI H2 Injection -->
+                        <tr class="hover:bg-steel-800/50 transition-colors">
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="checkbox" 
+                                    name="project_selected" 
+                                    value="2" 
+                                    checked
+                                    class="w-5 h-5 accent-emerald-500 border-steel-700 rounded focus:ring-emerald-500"
+                                    aria-label="انتخاب پروژه تزریق هیدروژن DRI"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-steel-100 font-medium">
+                                <input 
+                                    type="hidden" 
+                                    name="project_2_title" 
+                                    value="تزریق هیدروژن جهت کاهش گاز مگامدول احیای مستقیم (DRI H2 Injection)"
+                                >
+                                تزریق هیدروژن جهت کاهش گاز مگامدول احیای مستقیم (DRI H2 Injection)
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_2_cost" 
+                                    value="60000" 
+                                    min="1000" 
+                                    step="1000"
+                                    class="w-24 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_2_benefit" 
+                                    value="110000" 
+                                    min="1000" 
+                                    step="1000"
+                                    class="w-24 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_2_trl" 
+                                    value="6" 
+                                    min="1" 
+                                    max="9"
+                                    class="w-16 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <select 
+                                    name="project_2_complexity" 
+                                    class="w-28 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="LOW">LOW</option>
+                                    <option value="MEDIUM">MEDIUM</option>
+                                    <option value="HIGH" selected>HIGH</option>
+                                </select>
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <select 
+                                    name="project_2_supply" 
+                                    class="w-32 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="DOMESTIC">DOMESTIC</option>
+                                    <option value="MODERATE_DELAY" selected>MODERATE_DELAY</option>
+                                    <option value="CRITICAL_IMPORT">CRITICAL_IMPORT</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <!-- Project 3: LF Refractory Life Extension -->
+                        <tr class="hover:bg-steel-800/50 transition-colors">
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="checkbox" 
+                                    name="project_selected" 
+                                    value="3" 
+                                    checked
+                                    class="w-5 h-5 accent-emerald-500 border-steel-700 rounded focus:ring-emerald-500"
+                                    aria-label="انتخاب پروژه ارتقای نسوز LF"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-steel-100 font-medium">
+                                <input 
+                                    type="hidden" 
+                                    name="project_3_title" 
+                                    value="ارتقای متالورژی نسوز پاتیل و کوره تصفیه (LF Refractory Life Extension)"
+                                >
+                                ارتقای متالورژی نسوز پاتیل و کوره تصفیه (LF Refractory Life Extension)
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_3_cost" 
+                                    value="30000" 
+                                    min="1000" 
+                                    step="1000"
+                                    class="w-24 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_3_benefit" 
+                                    value="55000" 
+                                    min="1000" 
+                                    step="1000"
+                                    class="w-24 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <input 
+                                    type="number" 
+                                    name="project_3_trl" 
+                                    value="8" 
+                                    min="1" 
+                                    max="9"
+                                    class="w-16 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <select 
+                                    name="project_3_complexity" 
+                                    class="w-28 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="LOW" selected>LOW</option>
+                                    <option value="MEDIUM">MEDIUM</option>
+                                    <option value="HIGH">HIGH</option>
+                                </select>
+                            </td>
+                            <td class="px-3 py-3 text-center">
+                                <select 
+                                    name="project_3_supply" 
+                                    class="w-32 px-2 py-1 card-surface border-steel-700 border rounded text-center text-steel-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="DOMESTIC">DOMESTIC</option>
+                                    <option value="MODERATE_DELAY">MODERATE_DELAY</option>
+                                    <option value="CRITICAL_IMPORT" selected>CRITICAL_IMPORT</option>
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">تیک‌دار = در بهینه‌سازی لحاظ می‌شود. مقادیر هزینه/سود/ویژگی‌ها قابل ویرایش هستند.</p>
+        </fieldset>
+
+        <!-- Submit Button & Loading Spinner -->
+        <div class="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t border-steel-700">
+            <button 
+                type="submit" 
+                class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-steel-900"
+            >
+                <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                اجرای بهینه‌سازی سبد (Knapsack Multi-Criteria)
+            </button>
+            <div id="portfolio-spinner" class="htmx-indicator flex items-center gap-2 text-slate-400" aria-live="polite" aria-busy="true">
+                <svg class="animate-spin h-6 w-6 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>در حال حل بهینه‌سازی کناپ‌ساک استوکاستیک و محاسبه سبد بهینه...</span>
+            </div>
+        </div>
+    </form>
+
+    <!-- Results Container -->
+    <div id="portfolio-results" class="mt-8" aria-live="polite" aria-atomic="true"></div>
+</section>
+{% endblock %}

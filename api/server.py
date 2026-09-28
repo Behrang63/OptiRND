@@ -2,6 +2,7 @@
 FastAPI mock server for OptiRND evaluation pipeline.
 Serves on port 8001 with OWASP security headers and strict CORS.
 """
+import html
 from contextlib import asynccontextmanager
 from typing import List
 
@@ -553,6 +554,16 @@ async def risks_view(request: Request):
     )
 
 
+@app.get("/portfolio", status_code=status.HTTP_200_OK)
+async def portfolio_view(request: Request):
+    """Portfolio Optimization console for steel R&D technology selection."""
+    return templates.TemplateResponse(
+        request,
+        "portfolio.html",
+        {"app_name": "OptiRND Steel Suite", "version": "2.0.0"},
+    )
+
+
 @app.post("/web/simulation/run-fragment", status_code=status.HTTP_200_OK)
 async def run_simulation_fragment(request: Request):
     """
@@ -560,7 +571,6 @@ async def run_simulation_fragment(request: Request):
     Accepts form data, maps to SimulationRequest, runs real simulation,
     and returns an HTML fragment with results.
     """
-    import html
     try:
         form = await request.form()
         
@@ -742,7 +752,6 @@ async def run_simulation_fragment(request: Request):
         </div>
         """
         
-        from fastapi.responses import HTMLResponse
         return HTMLResponse(content=fragment_html)
         
     except ValidationError as e:
@@ -1023,7 +1032,6 @@ async def evaluate_proposal_fragment(request: Request):
         </div>
         """
         
-        from fastapi.responses import HTMLResponse
         return HTMLResponse(content=fragment_html)
         
     except ValidationError as e:
@@ -1067,6 +1075,327 @@ async def evaluate_proposal_fragment(request: Request):
                 <h4 class="font-semibold">خطای موتور ارزیابی</h4>
             </div>
             <p class="text-sm text-slate-300">خطای غیرمنتظره: {str(e)}</p>
+        </div>
+        """
+        return HTMLResponse(content=error_html, status_code=500)
+
+
+@app.post("/web/portfolio/optimize-fragment", status_code=status.HTTP_200_OK)
+async def optimize_portfolio_fragment(request: Request):
+    """
+    HTMX fragment endpoint for Portfolio Optimization.
+    Accepts form data, maps to PortfolioOptimizationRequest, runs real optimization,
+    and returns an HTML fragment with results including human-in-the-loop governance gate.
+    """
+    try:
+        form = await request.form()
+        
+        # Parse budget limit with defensive validation
+        raw_budget = form.get("budget_limit")
+        try:
+            budget_limit = float(raw_budget) if raw_budget not in (None, "") else 120000.0
+            if budget_limit <= 0:
+                raise ValueError("سقف بودجه باید عددی مثبت باشد.")
+        except (ValueError, TypeError) as val_err:
+            error_html = f"""
+            <div class="card-surface rounded-xl p-6 border-red-700 bg-red-900/20" role="alert">
+                <div class="flex items-center gap-3 text-red-400 mb-3">
+                    <h4 class="font-semibold">خطای اعتبارسنجی ورودی</h4>
+                </div>
+                <p class="text-sm text-slate-300">مقدار سقف بودجه نامعتبر است: {html.escape(str(val_err))}</p>
+            </div>
+            """
+            return HTMLResponse(content=error_html, status_code=422)
+        
+        # Reconstruct candidate projects from form inputs
+        # Default projects (matching the template)
+        default_projects = [
+            {
+                "title": "بازیابی حرارت اتلافی سرباره کوره قوس (EAF Heat Recovery)",
+                "cost": 45000.0,
+                "benefit": 80000.0,
+                "trl": 7,
+                "complexity": "MEDIUM",
+                "supply": "DOMESTIC",
+            },
+            {
+                "title": "تزریق هیدروژن جهت کاهش گاز مگامدول احیای مستقیم (DRI H2 Injection)",
+                "cost": 60000.0,
+                "benefit": 110000.0,
+                "trl": 6,
+                "complexity": "HIGH",
+                "supply": "MODERATE_DELAY",
+            },
+            {
+                "title": "ارتقای متالورژی نسوز پاتیل و کوره تصفیه (LF Refractory Life Extension)",
+                "cost": 30000.0,
+                "benefit": 55000.0,
+                "trl": 8,
+                "complexity": "LOW",
+                "supply": "CRITICAL_IMPORT",
+            },
+        ]
+        
+        # Parse selected projects from form
+        selected_indices = form.getlist("project_selected")
+        candidate_proposals = []
+        
+        for i, default_proj in enumerate(default_projects, 1):
+            proj_num = str(i)
+            # Check if project is selected
+            if proj_num in selected_indices:
+                # Parse form values with fallback to defaults
+                title = form.get(f"project_{proj_num}_title", default_proj["title"])
+                cost = float(form.get(f"project_{proj_num}_cost", default_proj["cost"]))
+                benefit = float(form.get(f"project_{proj_num}_benefit", default_proj["benefit"]))
+                trl = int(form.get(f"project_{proj_num}_trl", default_proj["trl"]))
+                complexity = form.get(f"project_{proj_num}_complexity", default_proj["complexity"])
+                supply = form.get(f"project_{proj_num}_supply", default_proj["supply"])
+                
+                # Map qualitative attributes to p_success using the same logic as evaluation
+                from core.qualitative_engine import calculate_technical_success_probability
+                p_success = calculate_technical_success_probability(
+                    trl_level=trl,
+                    team_capability="MEDIUM",
+                    technical_complexity=complexity,
+                    supply_dependence=supply,
+                )
+                
+                # Create Triplet for cost and benefit (using likely as base, with +/- 20% spread)
+                cost_triplet = Triplet(low=cost * 0.8, likely=cost, high=cost * 1.2)
+                benefit_triplet = Triplet(low=benefit * 0.8, likely=benefit, high=benefit * 1.2)
+                # Downtime triplet based on complexity
+                downtime_map = {"LOW": (10.0, 20.0, 40.0), "MEDIUM": (20.0, 50.0, 100.0), "HIGH": (50.0, 100.0, 200.0)}
+                dt_low, dt_likely, dt_high = downtime_map.get(complexity, (20.0, 50.0, 100.0))
+                downtime_triplet = Triplet(low=dt_low, likely=dt_likely, high=dt_high)
+                
+                # Escape title for safety
+                safe_title = html.escape(title)
+                
+                candidate_proposals.append(PortfolioProjectRequest(
+                    title=safe_title,
+                    cost=cost_triplet,
+                    benefit=benefit_triplet,
+                    downtime=downtime_triplet,
+                ))
+        
+        # If no projects selected, fall back to all default projects
+        if not candidate_proposals:
+            for default_proj in default_projects:
+                from core.qualitative_engine import calculate_technical_success_probability
+                p_success = calculate_technical_success_probability(
+                    trl_level=default_proj["trl"],
+                    team_capability="MEDIUM",
+                    technical_complexity=default_proj["complexity"],
+                    supply_dependence=default_proj["supply"],
+                )
+                cost = default_proj["cost"]
+                benefit = default_proj["benefit"]
+                cost_triplet = Triplet(low=cost * 0.8, likely=cost, high=cost * 1.2)
+                benefit_triplet = Triplet(low=benefit * 0.8, likely=benefit, high=benefit * 1.2)
+                downtime_map = {"LOW": (10.0, 20.0, 40.0), "MEDIUM": (20.0, 50.0, 100.0), "HIGH": (50.0, 100.0, 200.0)}
+                dt_low, dt_likely, dt_high = downtime_map.get(default_proj["complexity"], (20.0, 50.0, 100.0))
+                downtime_triplet = Triplet(low=dt_low, likely=dt_likely, high=dt_high)
+                safe_title = html.escape(default_proj["title"])
+                candidate_proposals.append(PortfolioProjectRequest(
+                    title=safe_title,
+                    cost=cost_triplet,
+                    benefit=benefit_triplet,
+                    downtime=downtime_triplet,
+                ))
+        
+        # Construct PortfolioOptimizationRequest
+        portfolio_request = PortfolioOptimizationRequest(
+            projects=candidate_proposals,
+            budget_limit=budget_limit,
+            max_downtime_hours=500.0,  # Reasonable default for steel plant annual downtime budget
+        )
+        
+        # Run real portfolio optimization
+        portfolio_result = _run_real_portfolio_optimization(portfolio_request)
+        
+        # Format numbers with thousand separators
+        def fmt(n: float) -> str:
+            return f"{n:,.0f}"
+        
+        # Build selected vs deferred project lists
+        selected_titles = set(portfolio_result.selected_titles)
+        all_titles = [p.title for p in candidate_proposals]
+        
+        # Calculate total selected cost and benefit
+        total_selected_cost = portfolio_result.total_selected_cost
+        total_selected_npv = portfolio_result.total_selected_npv
+        budget_utilization = portfolio_result.budget_utilization_pct
+        
+        # Build HTML fragment
+        fragment_html = f"""
+        <div class="card-surface rounded-xl p-6 border-steel-700 animate-fade-in" role="region" aria-label="نتایج بهینه‌سازی سبد فناوری">
+            <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-steel-700">
+                <h3 class="text-xl font-semibold text-steel-100">نتایج بهینه‌سازی سبد R&D</h3>
+                <span class="px-3 py-1.5 rounded-lg border bg-emerald-900/30 border-emerald-700 text-emerald-300 text-sm font-medium">
+                    متد: {portfolio_result.method_used} | وضعیت: {portfolio_result.status}
+                </span>
+            </header>
+            
+            <!-- Portfolio Macro Metrics -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 border-emerald-500">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">بودجه تخصیص‌یافته / سقف کپکس</div>
+                    <div class="text-3xl font-bold text-emerald-400">{fmt(total_selected_cost)} / {fmt(budget_limit)} میلیون تومان</div>
+                    <div class="text-xs text-slate-500 mt-1">مجموع هزینه پروژه‌های منتخب</div>
+                </div>
+                <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 border-blue-500">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">سود خالص پیش‌بینی‌شده سبد (NPV)</div>
+                    <div class="text-3xl font-bold text-blue-400">{fmt(total_selected_npv)} میلیون تومان</div>
+                    <div class="text-xs text-slate-500 mt-1">مجموع NPV پروژه‌های منتخب</div>
+                </div>
+                <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 border-amber-500">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">استفاده از بودجه</div>
+                    <div class="text-3xl font-bold text-amber-400">{budget_utilization:.1f}%</div>
+                    <div class="text-xs text-slate-500 mt-1">درصد سقف سرمایه‌گذاری مصرف‌شده</div>
+                </div>
+            </div>
+            
+            <!-- Selected vs Deferred Projects Table -->
+            <div class="mb-6">
+                <h4 class="text-lg font-medium text-steel-100 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    پروژه‌های منتخب vs. مازاد بر سقف بودجه
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm" role="grid" aria-label="جدول پروژه‌های منتخب و مازاد">
+                        <thead>
+                            <tr class="border-b border-steel-700 text-slate-400">
+                                <th class="px-3 py-2 text-right font-medium">رتبه</th>
+                                <th class="px-3 py-2 text-right font-medium">عنوان پروژه</th>
+                                <th class="px-3 py-2 text-center font-medium">هزینه (میلیون تومان)</th>
+                                <th class="px-3 py-2 text-center font-medium">NPV (میلیون تومان)</th>
+                                <th class="px-3 py-2 text-center font-medium">توقف (ساعت)</th>
+                                <th class="px-3 py-2 text-center font-medium">وضعیت</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-steel-700">
+        """
+        
+        # Add selected projects
+        rank = 1
+        for proj in candidate_proposals:
+            if proj.title in selected_titles:
+                # Find NPV for this project (approximate from benefit - cost)
+                proj_npv = proj.benefit.likely - proj.cost.likely
+                fragment_html += f"""
+                            <tr class="hover:bg-emerald-900/20 transition-colors">
+                                <td class="px-3 py-3 text-center font-medium text-emerald-400">#{rank}</td>
+                                <td class="px-3 py-3 text-steel-100">{html.escape(proj.title)}</td>
+                                <td class="px-3 py-3 text-center text-emerald-300">{fmt(proj.cost.likely)}</td>
+                                <td class="px-3 py-3 text-center text-emerald-300">{fmt(proj_npv)}</td>
+                                <td class="px-3 py-3 text-center text-slate-300">{fmt(proj.downtime.likely)}</td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="px-3 py-1 rounded-full bg-emerald-900/50 border border-emerald-700 text-emerald-300 text-xs font-medium">
+                                        منتخب در سبد بهینه (Selected)
+                                    </span>
+                                </td>
+                            </tr>
+                """
+                rank += 1
+        
+        # Add deferred projects
+        for proj in candidate_proposals:
+            if proj.title not in selected_titles:
+                proj_npv = proj.benefit.likely - proj.cost.likely
+                fragment_html += f"""
+                            <tr class="hover:bg-amber-900/20 transition-colors">
+                                <td class="px-3 py-3 text-center text-slate-500">—</td>
+                                <td class="px-3 py-3 text-slate-300">{html.escape(proj.title)}</td>
+                                <td class="px-3 py-3 text-center text-amber-300">{fmt(proj.cost.likely)}</td>
+                                <td class="px-3 py-3 text-center text-amber-300">{fmt(proj_npv)}</td>
+                                <td class="px-3 py-3 text-center text-slate-500">{fmt(proj.downtime.likely)}</td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="px-3 py-1 rounded-full bg-amber-900/50 border border-amber-700 text-amber-300 text-xs font-medium">
+                                        مازاد بر سقف بودجه / ذخیره (Deferred)
+                                    </span>
+                                </td>
+                            </tr>
+                """
+        
+        fragment_html += f"""
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Human-in-the-Loop Decision & Governance Gate -->
+            <div class="border-t border-steel-700 pt-6">
+                <h4 class="text-lg font-medium text-steel-100 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    دروازه تصمیم‌گیری و نظارت انسانی (Human-in-the-Loop Governance)
+                </h4>
+                <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 border-emerald-500 bg-emerald-900/10">
+                    <div class="mb-4">
+                        <label for="cto_notes" class="block text-sm font-medium text-steel-100 mb-2">یادداشت‌های بازبینی مدیر عامل فناوری (CTO Review Notes)</label>
+                        <textarea 
+                            id="cto_notes" 
+                            name="cto_notes" 
+                            rows="3"
+                            class="w-full px-4 py-3 card-surface border-steel-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-steel-100 placeholder-slate-500 resize-none"
+                            placeholder="نظرات، شرایط، یا دستورالعمل‌های CTO برای تأیید نهایی سبد..."
+                            aria-describedby="cto-notes-help"
+                        ></textarea>
+                        <p id="cto-notes-help" class="mt-1 text-xs text-slate-500">این فیلد برای ثبت نظرات مدیریتی قبل از امضای نهایی سبد فناوری است.</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <span class="px-4 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-900/30 text-emerald-300 font-semibold text-sm">
+                            وضعیت: PENDING_REVIEW
+                        </span>
+                        <button 
+                            type="button"
+                            class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-steel-900"
+                            disabled
+                        >
+                            <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            تأیید نهایی و امضای سبد فناوری (وضعیت: PENDING_REVIEW)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+        
+        return HTMLResponse(content=fragment_html)
+        
+    except ValidationError as e:
+        error_html = f"""
+        <div class="card-surface rounded-xl p-6 border-red-700 bg-red-900/20" role="alert">
+            <div class="flex items-center gap-3 text-red-400 mb-3">
+                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <h4 class="font-semibold">خطای اعتبارسنجی ورودی</h4>
+            </div>
+            <ul class="text-sm text-slate-300 space-y-1">
+        """
+        for err in e.errors():
+            field = " → ".join(str(x) for x in err["loc"])
+            error_html += f"<li><span class='font-mono text-red-300'>{html.escape(field)}</span>: {html.escape(err['msg'])}</li>"
+        error_html += "</ul></div>"
+        return HTMLResponse(content=error_html, status_code=422)
+        
+    except Exception as e:
+        error_html = f"""
+        <div class="card-surface rounded-xl p-6 border-red-700 bg-red-900/20" role="alert">
+            <div class="flex items-center gap-3 text-red-400 mb-3">
+                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <h4 class="font-semibold">خطای موتور بهینه‌سازی سبد</h4>
+            </div>
+            <p class="text-sm text-slate-300">خطای غیرمنتظره: {html.escape(str(e))}</p>
         </div>
         """
         return HTMLResponse(content=error_html, status_code=500)
