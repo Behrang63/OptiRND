@@ -28,6 +28,21 @@
         .border-steel { border-color: #334155; }
         .text-steel { color: #f8fafc; }
         .badge-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; }
+        /* Strict Hardware Constraint on all SVGs */
+        svg {
+          width: 24px !important;
+          height: 24px !important;
+          max-width: 24px !important;
+          max-height: 24px !important;
+          display: inline-block !important;
+          flex-shrink: 0 !important;
+        }
+        /* Core layout fallbacks if CDN fails */
+        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; margin: 0; direction: rtl; }
+        .card-surface { background-color: #1e293b; border: 1px solid #334155; }
+        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .btn-primary { display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem; border-radius: 0.5rem; font-weight: 500; text-decoration: none; color: #ffffff; }
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased">
@@ -36,9 +51,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-steel-700 flex items-center justify-center">
-                        <svg class="w-6 h-6 shrink-0 inline-block text-steel-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                        </svg>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
                     <div>
                         <h1 class="text-xl font-bold text-steel-100 tracking-tight">
