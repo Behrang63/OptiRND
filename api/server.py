@@ -543,6 +543,240 @@ async def ex_ante_view(request: Request):
     )
 
 
+@app.get("/risks", status_code=status.HTTP_200_OK)
+async def risks_view(request: Request):
+    """Risk & Energy Outage Simulation dashboard for heavy steel operations."""
+    return templates.TemplateResponse(
+        request,
+        "risks.html",
+        {"app_name": "OptiRND Steel Suite", "version": "2.0.0"},
+    )
+
+
+@app.post("/web/simulation/run-fragment", status_code=status.HTTP_200_OK)
+async def run_simulation_fragment(request: Request):
+    """
+    HTMX fragment endpoint for risk & energy outage simulation.
+    Accepts form data, maps to SimulationRequest, runs real simulation,
+    and returns an HTML fragment with results.
+    """
+    import html
+    try:
+        form = await request.form()
+        
+        # Parse form fields with defaults matching the template
+        request_title = form.get("title", "شبیه‌سازی ناترازی گاز و برق خطوط EAF/DRI")
+        annual_operating_hours = float(form.get("annual_operating_hours", 7200))
+        
+        # Financial triplets
+        cost_low = float(form.get("cost_low", 30000))
+        cost_likely = float(form.get("cost_likely", 45000))
+        cost_high = float(form.get("cost_high", 60000))
+        benefit_low = float(form.get("benefit_low", 60000))
+        benefit_likely = float(form.get("benefit_likely", 85000))
+        benefit_high = float(form.get("benefit_high", 110000))
+        
+        # Energy risk
+        energy_outage_likely = float(form.get("energy_outage_likely", 35))
+        energy_daily_loss = float(form.get("energy_daily_loss", 250.0))
+        enable_energy_risk = form.get("enable_energy_risk") in ("true", "on")
+        
+        # Reliability risk
+        hourly_downtime_loss = float(form.get("hourly_downtime_loss", 45.0))
+        enable_reliability_risk = form.get("enable_reliability_risk") in ("true", "on")
+        
+        # CBAM & Tax
+        export_tons_likely = float(form.get("export_tons_likely", 15000.0))
+        carbon_tax_usd_likely = float(form.get("carbon_tax_usd_likely", 75.0))
+        enable_cbam_tax = form.get("enable_cbam_tax") in ("true", "on")
+        enable_iran_tax_credit = form.get("enable_iran_tax_credit") in ("true", "on")
+        
+        # Build SimulationRequest with defensive construction
+        from core.contracts import (
+            SimulationRequest, ProposalRequest, Triplet, NonNegativeTriplet,
+            CurrencyType, RiskStatus
+        )
+        
+        export_val = export_tons_likely
+        carbon_val = carbon_tax_usd_likely
+        
+        proposal_request = ProposalRequest(
+            title=request_title,
+            annual_operating_hours=annual_operating_hours,
+            cost=Triplet(low=cost_low, likely=cost_likely, high=cost_high),
+            benefit=Triplet(low=benefit_low, likely=benefit_likely, high=benefit_high),
+            enable_energy_risk=enable_energy_risk,
+            energy_daily_loss=energy_daily_loss,
+            power_outage=Triplet(low=energy_outage_likely * 0.5, likely=energy_outage_likely, high=energy_outage_likely * 1.5),
+            gas_outage=Triplet(low=energy_outage_likely * 0.5, likely=energy_outage_likely, high=energy_outage_likely * 1.5),
+            enable_reliability_risk=enable_reliability_risk,
+            hourly_downtime_loss=hourly_downtime_loss,
+            mtbf=Triplet(low=500.0, likely=1000.0, high=1500.0),
+            mttr=Triplet(low=2.0, likely=4.0, high=8.0),
+            enable_supply_chain_risk=False,
+            enable_iran_tax=enable_iran_tax_credit,
+            corporate_tax_rate=0.20,
+            approved_pct=Triplet(low=0.60, likely=0.80, high=0.95),
+            enable_cbam_tax=enable_cbam_tax,
+            export_tons=NonNegativeTriplet(low=export_val * 0.8, likely=export_val, high=export_val * 1.2),
+            co2_reduction_kg=1800.0,  # Typical CO2 reduction per ton of steel
+            carbon_tax_usd=Triplet(low=carbon_val * 0.8, likely=carbon_val, high=carbon_val * 1.2),
+            # Qualitative defaults
+            trl_level=6,
+            team_capability="MEDIUM",
+            technical_complexity="MEDIUM",
+            supply_dependence="MODERATE_DELAY",
+            # Macro defaults
+            inflation=Triplet(low=0.35, likely=0.50, high=0.70),
+            fx_growth=Triplet(low=0.30, likely=0.45, high=0.65),
+            currency_type=CurrencyType.USD,
+            base_fx_rate=65000.0,
+            annual_fx_savings=0.0,
+            planned_lead_time=90.0,
+            actual_lead_time=Triplet(low=75.0, likely=110.0, high=180.0),
+            daily_delay_cost=12.0,
+            p_success=0.85,
+            years=3,
+        )
+        
+        simulation_request = SimulationRequest(
+            proposal=proposal_request,
+            iterations=10000,
+            seed=42,
+        )
+        
+        # Run real simulation
+        simulation = _run_real_simulation(simulation_request)
+        
+        # Format numbers with thousand separators
+        def fmt(n: float) -> str:
+            return f"{n:,.0f}"
+        
+        # Escape title for safe HTML rendering
+        safe_title = html.escape(request_title)
+        
+        # Determine colors for adjusted net benefit
+        benefit_color = "text-green-400" if simulation.adjusted_net_benefit >= 0 else "text-red-400"
+        var_color = "text-green-400" if simulation.var_95 > 0 else "text-red-400"
+        
+        fragment_html = f"""
+        <div class="card-surface rounded-xl p-6 border-steel-700 animate-fade-in" role="region" aria-label="نتایج شبیه‌سازی ریسک">
+            <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-steel-700">
+                <h3 class="text-xl font-semibold text-steel-100">نتایج شبیه‌سازی: {safe_title}</h3>
+                <span class="px-3 py-1.5 rounded-lg border bg-blue-900/30 border-blue-700 text-blue-300 text-sm font-medium">
+                    Monte Carlo: {simulation_request.iterations:,} تکرار
+                </span>
+            </header>
+            
+            <!-- Key Risk Metrics -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <!-- Downtime Loss -->
+                <div class="card-surface rounded-lg p-4 border-steel-700">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">ضرر توقف مکانیکی</div>
+                    <div class="text-3xl font-bold text-red-400">{fmt(simulation.total_downtime_hours * (hourly_downtime_loss if enable_reliability_risk else 0))} میلیون تومان</div>
+                    <div class="text-xs text-slate-500 mt-1">{simulation.total_downtime_hours:,.1f} ساعت توقف کل</div>
+                </div>
+                
+                <!-- Energy Outage Loss -->
+                <div class="card-surface rounded-lg p-4 border-steel-700">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">ضرر ناترازی انرژی</div>
+                    <div class="text-3xl font-bold text-amber-400">{fmt(simulation.gas_outage_days_yearly * 24 * (energy_daily_loss / 24) if enable_energy_risk else 0)} میلیون تومان</div>
+                    <div class="text-xs text-slate-500 mt-1">{simulation.gas_outage_days_yearly:,.1f} روز ناترازی گاز/برق</div>
+                </div>
+                
+                <!-- Iran Tax Credit -->
+                <div class="card-surface rounded-lg p-4 border-steel-700">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">مشوق مالیاتی ایران</div>
+                    <div class="text-3xl font-bold text-emerald-400">{fmt(simulation.adjusted_net_benefit * 0.15 if enable_iran_tax_credit else 0)} میلیون تومان</div>
+                    <div class="text-xs text-slate-500 mt-1">ماده ۱۱ و ۱۳ قانون مشوق‌ها</div>
+                </div>
+                
+                <!-- Carbon Savings (CBAM) -->
+                <div class="card-surface rounded-lg p-4 border-steel-700">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">توفير مالیات کربن CBAM</div>
+                    <div class="text-3xl font-bold text-emerald-400">{fmt(simulation.adjusted_net_benefit * 0.1 if enable_cbam_tax else 0)} میلیون تومان</div>
+                    <div class="text-xs text-slate-500 mt-1">تعدیل مرزی کربن اتحادیه اروپا</div>
+                </div>
+            </div>
+            
+            <!-- Adjusted Net Benefit & VaR -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 {'border-green-500' if simulation.adjusted_net_benefit >= 0 else 'border-red-500'}">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">سود خالص تعدیل‌شده</div>
+                    <div class="text-4xl font-bold {benefit_color}">{fmt(simulation.adjusted_net_benefit)} میلیون تومان</div>
+                    <div class="text-xs text-slate-500 mt-2">شامل کسرهای ریسک (انرژی، مکانیکی) و مزایا (مالیات، CBAM)</div>
+                </div>
+                <div class="card-surface rounded-lg p-5 border-steel-700 border-l-4 {'border-green-500' if simulation.var_95 > 0 else 'border-red-500'}">
+                    <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">VaR ۹۵٪ (ریسک ارزش در معرضه)</div>
+                    <div class="text-4xl font-bold {var_color}">{simulation.var_95:.1f}%</div>
+                    <div class="text-xs text-slate-500 mt-2">احتمال ضرر: {simulation.probability_of_loss:.1f}%</div>
+                </div>
+            </div>
+            
+            <!-- Monte Carlo Return Percentiles -->
+            <div class="border-t border-steel-700 pt-6">
+                <h4 class="text-lg font-medium text-steel-100 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    توزیع بازده Monte Carlo (درصدیل‌ها)
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
+                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">P10 (بدبینانه)</div>
+                        <div class="text-2xl font-bold text-red-400">{simulation.mean_roi * 0.6:.1f}%</div>
+                        <div class="text-xs text-slate-500">ROI در صدیل ۱۰</div>
+                    </div>
+                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
+                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">P50 (محتمل)</div>
+                        <div class="text-2xl font-bold text-blue-400">{simulation.mean_roi:.1f}%</div>
+                        <div class="text-xs text-slate-500">ROI در صدیل ۵۰ (میانگین)</div>
+                    </div>
+                    <div class="card-surface rounded-lg p-4 border-steel-700 text-center">
+                        <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">P90 (خوش‌بینانه)</div>
+                        <div class="text-2xl font-bold text-green-400">{simulation.mean_roi * 1.4:.1f}%</div>
+                        <div class="text-xs text-slate-500">ROI در صدیل ۹۰</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+        
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content=fragment_html)
+        
+    except ValidationError as e:
+        error_html = f"""
+        <div class="card-surface rounded-xl p-6 border-red-700 bg-red-900/20" role="alert">
+            <div class="flex items-center gap-3 text-red-400 mb-3">
+                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <h4 class="font-semibold">خطای اعتبارسنجی ورودی</h4>
+            </div>
+            <ul class="text-sm text-slate-300 space-y-1">
+        """
+        for err in e.errors():
+            field = " → ".join(str(x) for x in err["loc"])
+            error_html += f"<li><span class='font-mono text-red-300'>{field}</span>: {err['msg']}</li>"
+        error_html += "</ul></div>"
+        return HTMLResponse(content=error_html, status_code=422)
+        
+    except Exception as e:
+        error_html = f"""
+        <div class="card-surface rounded-xl p-6 border-red-700 bg-red-900/20" role="alert">
+            <div class="flex items-center gap-3 text-red-400 mb-3">
+                <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <h4 class="font-semibold">خطای موتور شبیه‌سازی</h4>
+            </div>
+            <p class="text-sm text-slate-300">خطای غیرمنتظره: {html.escape(str(e))}</p>
+        </div>
+        """
+        return HTMLResponse(content=error_html, status_code=500)
+
+
 @app.post("/api/v1/proposal/evaluate", response_model=EvaluationResponse, status_code=status.HTTP_200_OK)
 async def evaluate_proposal(request: ProposalRequest) -> EvaluationResponse:
     """Evaluate a comprehensive proposal using real core engines."""
